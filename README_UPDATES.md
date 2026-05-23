@@ -21,6 +21,11 @@ Tài liệu này ghi lại các thay đổi quan trọng đã được thực hi
 - Đồng bộ hóa các kiểu dữ liệu (`User`, `SparkCluster`, v.v.) giữa các thư viện nội bộ và ứng dụng frontend.
 - Cập nhật các import để sử dụng đúng đường dẫn từ `@workspace/api-client-react`.
 
+### 4. Hỗ trợ Deployment (K8s & Docker)
+- **Dockerfile:** Đã tạo Dockerfile đa giai đoạn để đóng gói cả frontend (phục vụ bằng Nginx) và backend (Node.js) vào một image duy nhất `data-portal-app`.
+- **K8s Manifests:** Thêm thư mục `k8s/` chứa các cấu hình Deployment, Service và Ingress.
+- **Ingress Configuration:** Đã cấu hình Ingress với domain `portal-app.k8s.tailnet`, tích hợp với Nginx Ingress Controller trong namespace `load-balancer`.
+
 ---
 
 ## Hướng Dẫn Chạy Dự Án (Windows)
@@ -34,3 +39,16 @@ Tài liệu này ghi lại các thay đổi quan trọng đã được thực hi
    ```powershell
    pnpm --filter @workspace/data-platform-portal run dev:windows
    ```
+
+## Hướng Dẫn Deployment (Docker & K8s)
+
+1. **Build Docker Image:**
+   ```bash
+   docker build -t data-portal-app:latest .
+   ```
+
+2. **Deploy lên K8s:**
+   ```bash
+   kubectl apply -f k8s/deploy.yaml
+   ```
+   *Lưu ý: Đảm bảo Ingress Controller đã được cài đặt trong namespace `load-balancer`.*
