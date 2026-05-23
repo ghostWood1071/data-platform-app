@@ -160,3 +160,73 @@ export interface PlatformService {
   isJdbc?: boolean | null;
 }
 
+export type SparkClusterProfileSize = typeof SparkClusterProfileSize[keyof typeof SparkClusterProfileSize];
+
+
+export const SparkClusterProfileSize = {
+  small: 'small',
+  medium: 'medium',
+  large: 'large',
+} as const;
+
+export type SparkClusterProfileStatus = typeof SparkClusterProfileStatus[keyof typeof SparkClusterProfileStatus];
+
+
+export const SparkClusterProfileStatus = {
+  RUNNING: 'RUNNING',
+  STOPPED: 'STOPPED',
+  SCALING: 'SCALING',
+  UNKNOWN: 'UNKNOWN',
+} as const;
+
+export interface SparkClusterProfile {
+  clusterName: string;
+  namespace: string;
+  size: SparkClusterProfileSize;
+  status: SparkClusterProfileStatus;
+  currentWorkerReplicas: number;
+  desiredWorkerReplicas: number;
+  defaultWorkerReplicas: number;
+  minWorkers: number;
+  maxWorkers: number;
+  driverCpu: string;
+  driverMemory: string;
+  workerCpu: string;
+  workerMemory: string;
+  sparkMasterUrl: string;
+  sparkUiUrl: string;
+  /** @nullable */
+  executorMemory?: string | null;
+  /** @nullable */
+  executorCores?: number | null;
+  /** @nullable */
+  shufflePartitions?: number | null;
+  /** @nullable */
+  dynamicAllocationEnabled?: boolean | null;
+}
+
+export interface SparkClusterListResponse {
+  clusters: SparkClusterProfile[];
+}
+
+export interface SparkClusterFull {
+  cluster: SparkClusterProfile;
+  pods?: SparkPod[];
+}
+
+export interface ScaleClusterInput {
+  workers: number;
+}
+
+export interface ClusterConfigInput {
+  driverCpu?: string;
+  driverMemory?: string;
+  workerCpu?: string;
+  workerMemory?: string;
+  executorMemory?: string;
+  executorCores?: number;
+  shufflePartitions?: number;
+  dynamicAllocationEnabled?: boolean;
+  desiredWorkerReplicas?: number;
+}
+

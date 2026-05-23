@@ -183,6 +183,126 @@ paths:
                 items:
                   $ref: "#/components/schemas/ClusterEvent"
 
+  /clusters/spark/list:
+    get:
+      operationId: getSparkClusterList
+      tags: [clusters]
+      summary: Get all Spark cluster profiles
+      responses:
+        "200":
+          description: List of Spark clusters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparkClusterListResponse"
+
+  /clusters/spark/{clusterName}:
+    get:
+      operationId: getSparkClusterByName
+      tags: [clusters]
+      summary: Get Spark cluster by name
+      parameters:
+        - name: clusterName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Spark cluster details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparkClusterFull"
+
+  /clusters/spark/{clusterName}/start:
+    post:
+      operationId: startSparkClusterByName
+      tags: [clusters]
+      summary: Start a specific Spark cluster
+      parameters:
+        - name: clusterName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cluster start initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /clusters/spark/{clusterName}/stop:
+    post:
+      operationId: stopSparkClusterByName
+      tags: [clusters]
+      summary: Stop a specific Spark cluster
+      parameters:
+        - name: clusterName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cluster stop initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /clusters/spark/{clusterName}/scale:
+    post:
+      operationId: scaleSparkClusterByName
+      tags: [clusters]
+      summary: Scale a specific Spark cluster workers
+      parameters:
+        - name: clusterName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScaleClusterInput"
+      responses:
+        "200":
+          description: Scale initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
+  /clusters/spark/{clusterName}/config:
+    put:
+      operationId: updateSparkClusterConfig
+      tags: [clusters]
+      summary: Update Spark cluster configuration
+      parameters:
+        - name: clusterName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClusterConfigInput"
+      responses:
+        "200":
+          description: Config updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+
   /services:
     get:
       operationId: getServices
@@ -556,3 +676,97 @@ components:
           type: string
         details:
           type: ["string", "null"]
+
+    SparkClusterProfile:
+      type: object
+      required: [clusterName, namespace, size, status, currentWorkerReplicas, desiredWorkerReplicas, defaultWorkerReplicas, minWorkers, maxWorkers, driverCpu, driverMemory, workerCpu, workerMemory, sparkMasterUrl, sparkUiUrl]
+      properties:
+        clusterName:
+          type: string
+        namespace:
+          type: string
+        size:
+          type: string
+          enum: [small, medium, large]
+        status:
+          type: string
+          enum: [RUNNING, STOPPED, SCALING, UNKNOWN]
+        currentWorkerReplicas:
+          type: integer
+        desiredWorkerReplicas:
+          type: integer
+        defaultWorkerReplicas:
+          type: integer
+        minWorkers:
+          type: integer
+        maxWorkers:
+          type: integer
+        driverCpu:
+          type: string
+        driverMemory:
+          type: string
+        workerCpu:
+          type: string
+        workerMemory:
+          type: string
+        sparkMasterUrl:
+          type: string
+        sparkUiUrl:
+          type: string
+        executorMemory:
+          type: ["string", "null"]
+        executorCores:
+          type: ["integer", "null"]
+        shufflePartitions:
+          type: ["integer", "null"]
+        dynamicAllocationEnabled:
+          type: ["boolean", "null"]
+
+    SparkClusterListResponse:
+      type: object
+      required: [clusters]
+      properties:
+        clusters:
+          type: array
+          items:
+            $ref: "#/components/schemas/SparkClusterProfile"
+
+    SparkClusterFull:
+      type: object
+      required: [cluster]
+      properties:
+        cluster:
+          $ref: "#/components/schemas/SparkClusterProfile"
+        pods:
+          type: array
+          items:
+            $ref: "#/components/schemas/SparkPod"
+
+    ScaleClusterInput:
+      type: object
+      required: [workers]
+      properties:
+        workers:
+          type: integer
+
+    ClusterConfigInput:
+      type: object
+      properties:
+        driverCpu:
+          type: string
+        driverMemory:
+          type: string
+        workerCpu:
+          type: string
+        workerMemory:
+          type: string
+        executorMemory:
+          type: string
+        executorCores:
+          type: integer
+        shufflePartitions:
+          type: integer
+        dynamicAllocationEnabled:
+          type: boolean
+        desiredWorkerReplicas:
+          type: integer

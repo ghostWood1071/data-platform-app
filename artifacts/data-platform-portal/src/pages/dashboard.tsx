@@ -98,7 +98,7 @@ export default function Dashboard() {
                       <div key={(service as any).id || service.name} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                         <div className="flex flex-col">
                           <span className="font-medium text-sm">{service.name}</span>
-                          <span className="text-xs text-muted-foreground">{service.description || (service as any).category}</span>
+                          <span className="text-xs text-muted-foreground">{service.description || (service as any).category || ""}</span>
                         </div>
                         <StatusBadge status={service.status} />
                       </div>
