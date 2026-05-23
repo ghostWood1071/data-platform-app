@@ -535,7 +535,7 @@ export default function SparkCluster() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="secondary"
-                      className="gap-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
+                      className="w-full gap-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
                       onClick={handleStart}
                       disabled={!canStart || isRunning || startMutation.isPending || !cluster}
                       data-testid="button-start-cluster"
@@ -553,7 +553,7 @@ export default function SparkCluster() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="destructive"
-                      className="gap-2"
+                      className="w-full gap-2"
                       onClick={() => setShowStopConfirm(true)}
                       disabled={!canStop || !isRunning || stopMutation.isPending || !cluster}
                       data-testid="button-stop-cluster"
@@ -573,7 +573,7 @@ export default function SparkCluster() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
-                      className="gap-1"
+                      className="w-full gap-1"
                       onClick={handleScaleDown}
                       disabled={!canScale || !isRunning || scaleMutation.isPending || !cluster}
                       data-testid="button-scale-down"
@@ -591,7 +591,7 @@ export default function SparkCluster() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
-                      className="gap-1"
+                      className="w-full gap-1"
                       onClick={handleScaleUp}
                       disabled={!canScale || !isRunning || scaleMutation.isPending || !cluster}
                       data-testid="button-scale-up"
@@ -609,7 +609,7 @@ export default function SparkCluster() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="default"
-                      className="gap-1"
+                      className="w-full gap-1"
                       onClick={() => {
                         if (!cluster || !configForm) return;
                         const count = parseInt(configForm.desiredWorkerReplicas, 10);
