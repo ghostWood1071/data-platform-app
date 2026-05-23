@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Data Platform Portal"
+version = "1.0.0"
+id = "artifacts/data-platform-portal"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23721
+
+[services.development]
+run = "pnpm --filter @workspace/data-platform-portal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/data-platform-portal", "run", "build" ]
+publicDir = "artifacts/data-platform-portal/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23721"
+BASE_PATH = "/"
