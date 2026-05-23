@@ -1,0 +1,306 @@
+Update the existing Spark Cluster Management page in the Data Platform Portal.
+
+Do not create a new application. Modify the current Spark Cluster page only.
+
+Goal:
+The Spark Cluster page should allow users to choose one of three predefined Spark cluster sizes: Small, Medium, and Large. Each cluster has its own fixed resource profile, worker scaling limit, and editable runtime configuration.
+
+Main behavior:
+
+1. Cluster Selector
+At the top of the Spark Cluster page, add a cluster selector with 3 options:
+
+- Small Cluster
+- Medium Cluster
+- Large Cluster
+
+Display them as selectable cards or a segmented control.
+
+Each option should show a short summary:
+
+Small:
+- Suitable for development and lightweight testing
+- Default workers: 1
+- Worker scale range: 0 - 2
+
+Medium:
+- Suitable for normal ETL and data processing
+- Default workers: 2
+- Worker scale range: 1 - 5
+
+Large:
+- Suitable for heavy jobs and large batch processing
+- Default workers: 4
+- Worker scale range: 2 - 10
+
+When the user selects a cluster, update the page content to show the details and configuration of that selected cluster.
+
+2. Cluster Detail Panel
+After selecting a cluster, show a detail panel with:
+
+- Cluster name
+- Cluster size: small / medium / large
+- Namespace
+- Status: Running / Stopped / Scaling / Unknown
+- Spark master URL
+- Spark UI URL
+- Current worker replicas
+- Desired worker replicas
+- Minimum workers
+- Maximum workers
+
+Example mock data:
+
+Small Cluster:
+- cluster_name: data-exp-small
+- namespace: compute
+- status: RUNNING
+- master_replicas: 1
+- current_worker_replicas: 1
+- default_worker_replicas: 1
+- min_workers: 0
+- max_workers: 2
+- driver_cpu: 1 core
+- driver_memory: 2Gi
+- worker_cpu: 1 core
+- worker_memory: 2Gi
+- spark_master_url: spark://data-exp-small-master.compute.svc.cluster.local:7077
+- spark_ui_url: https://spark-small.k8s.tailnet
+
+Medium Cluster:
+- cluster_name: data-exp-medium
+- namespace: compute
+- status: RUNNING
+- master_replicas: 1
+- current_worker_replicas: 2
+- default_worker_replicas: 2
+- min_workers: 1
+- max_workers: 5
+- driver_cpu: 2 cores
+- driver_memory: 4Gi
+- worker_cpu: 2 cores
+- worker_memory: 4Gi
+- spark_master_url: spark://data-exp-medium-master.compute.svc.cluster.local:7077
+- spark_ui_url: https://spark-medium.k8s.tailnet
+
+Large Cluster:
+- cluster_name: data-exp-large
+- namespace: compute
+- status: STOPPED
+- master_replicas: 0
+- current_worker_replicas: 0
+- default_worker_replicas: 4
+- min_workers: 2
+- max_workers: 10
+- driver_cpu: 4 cores
+- driver_memory: 8Gi
+- worker_cpu: 4 cores
+- worker_memory: 8Gi
+- spark_master_url: spark://data-exp-large-master.compute.svc.cluster.local:7077
+- spark_ui_url: https://spark-large.k8s.tailnet
+
+3. Editable Configuration
+Add an editable configuration form for the selected cluster.
+
+Fields:
+- Desired worker replicas
+- Driver CPU
+- Driver memory
+- Worker CPU
+- Worker memory
+- Spark executor memory
+- Spark executor cores
+- Spark dynamic allocation enabled: true/false
+- Spark shuffle partitions
+
+The user should be able to edit these values and click:
+
+- Save Configuration
+- Reset to Default
+
+Use validation:
+- Desired worker replicas must be between min_workers and max_workers of the selected cluster.
+- Small cluster cannot scale above 2 workers.
+- Medium cluster cannot scale above 5 workers.
+- Large cluster cannot scale above 10 workers.
+- Worker count cannot be lower than the cluster minimum unless the user stops the cluster.
+- CPU and memory fields should not be empty.
+
+If the user enters invalid values, show a clear validation message.
+
+4. Cluster Actions
+Add action buttons:
+
+- Start Cluster
+- Stop Cluster
+- Scale Up
+- Scale Down
+- Apply Worker Count
+- Save Configuration
+
+Behavior:
+- Start Cluster sets status to RUNNING and restores worker count to default_worker_replicas.
+- Stop Cluster sets status to STOPPED and sets current_worker_replicas to 0.
+- Scale Up increases worker count by 1 but cannot exceed max_workers.
+- Scale Down decreases worker count by 1 but cannot go below min_workers while cluster is running.
+- Apply Worker Count updates current_worker_replicas to the desired worker count.
+- Save Configuration shows a success toast.
+
+Add confirmation modal before:
+- Stop Cluster
+- Apply Worker Count
+- Save Configuration if resource values were changed
+
+Toast examples:
+- “Small cluster started successfully”
+- “Medium cluster scaled to 4 workers”
+- “Large cluster configuration saved successfully”
+- “Worker count must be between 2 and 10 for Large cluster”
+
+5. Resource Summary
+Add a resource summary card that automatically updates based on the selected cluster and worker count.
+
+Show:
+- Total worker CPU
+- Total worker memory
+- Driver CPU
+- Driver memory
+- Estimated total CPU
+- Estimated total memory
+
+Example:
+If Medium cluster has 2 workers:
+- Driver CPU: 2 cores
+- Driver Memory: 4Gi
+- Worker CPU: 2 cores each
+- Worker Memory: 4Gi each
+- Total CPU: 6 cores
+- Total Memory: 12Gi
+
+Formula:
+Total CPU = driver_cpu + worker_cpu * worker_replicas
+Total Memory = driver_memory + worker_memory * worker_replicas
+
+6. Pods Table
+Update the pods table based on the selected cluster.
+
+Columns:
+- Pod Name
+- Cluster
+- Role
+- Status
+- Node
+- CPU
+- Memory
+- Age
+
+Mock pod examples:
+
+Small:
+- data-exp-small-master-xxx
+- data-exp-small-worker-1
+
+Medium:
+- data-exp-medium-master-xxx
+- data-exp-medium-worker-1
+- data-exp-medium-worker-2
+
+Large:
+If stopped, show empty worker pods and display:
+“No running pods. Start the cluster to create master and worker pods.”
+
+7. API Integration Readiness
+Use mock data for now, but structure the code so that real API integration can be added later.
+
+Expected future APIs:
+
+GET /api/clusters/spark
+GET /api/clusters/spark/{cluster_name}
+POST /api/clusters/spark/{cluster_name}/start
+POST /api/clusters/spark/{cluster_name}/stop
+POST /api/clusters/spark/{cluster_name}/scale
+PUT /api/clusters/spark/{cluster_name}/config
+GET /api/clusters/spark/{cluster_name}/pods
+
+Scale request example:
+
+{
+  "workers": 3
+}
+
+Config update request example:
+
+{
+  "driver_cpu": "2",
+  "driver_memory": "4Gi",
+  "worker_cpu": "2",
+  "worker_memory": "4Gi",
+  "executor_memory": "3Gi",
+  "executor_cores": 2,
+  "shuffle_partitions": 200,
+  "dynamic_allocation_enabled": false
+}
+
+8. UI Design
+Make the page look like a professional cloud management console.
+
+Use:
+- Cluster selection cards
+- Status badges
+- Resource cards
+- Editable form
+- Pods table
+- Confirmation modal
+- Toast notifications
+- Clean layout with good spacing
+
+Suggested layout:
+
+Top:
+- Page title: Spark Cluster Management
+- Short description: Manage predefined Spark clusters and worker scaling.
+
+Section 1:
+- Three cluster cards: Small, Medium, Large
+
+Section 2:
+- Selected cluster overview
+- Status
+- URLs
+- Current workers
+- Min/max scale limit
+
+Section 3:
+- Cluster action buttons
+
+Section 4:
+- Editable resource configuration
+
+Section 5:
+- Resource summary
+
+Section 6:
+- Pods table
+
+9. Role-Based Behavior
+Keep role-based UI behavior:
+
+- Users with cluster.spark.view can view the page.
+- Users with cluster.spark.start can start cluster.
+- Users with cluster.spark.stop can stop cluster.
+- Users with cluster.spark.scale can scale workers.
+- Users with cluster.spark.config.update can edit and save configuration.
+
+If the current user lacks permission, disable the related button and show tooltip:
+“You do not have permission to perform this action.”
+
+10. Important Notes
+The three clusters are predefined. Users should not be able to create arbitrary new Spark clusters from this page.
+
+They can only:
+- Select Small, Medium, or Large
+- View cluster details
+- Start or stop the selected cluster
+- Scale workers within allowed limits
+- Edit allowed runtime/resource configuration
+- Save configuration

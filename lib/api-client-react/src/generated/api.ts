@@ -23,14 +23,18 @@ import type {
   ActionResult,
   AuditLog,
   AuthResponse,
+  ClusterConfigInput,
   ClusterEvent,
   DashboardSummary,
   HealthStatus,
   LoginInput,
   PlatformService,
   Role,
+  ScaleClusterInput,
   ScaleInput,
   SparkCluster,
+  SparkClusterFull,
+  SparkClusterListResponse,
   SparkPod,
   ToggleUserInput,
   User,
@@ -863,6 +867,444 @@ export function useGetSparkEvents<TData = Awaited<ReturnType<typeof getSparkEven
 
 
 
+
+export const getGetSparkClusterListUrl = () => {
+
+
+
+
+  return `/api/clusters/spark/list`
+}
+
+/**
+ * @summary Get all Spark cluster profiles
+ */
+export const getSparkClusterList = async ( options?: RequestInit): Promise<SparkClusterListResponse> => {
+
+  return customFetch<SparkClusterListResponse>(getGetSparkClusterListUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSparkClusterListQueryKey = () => {
+    return [
+    `/api/clusters/spark/list`
+    ] as const;
+    }
+
+
+export const getGetSparkClusterListQueryOptions = <TData = Awaited<ReturnType<typeof getSparkClusterList>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSparkClusterList>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSparkClusterListQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSparkClusterList>>> = ({ signal }) => getSparkClusterList({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSparkClusterList>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSparkClusterListQueryResult = NonNullable<Awaited<ReturnType<typeof getSparkClusterList>>>
+export type GetSparkClusterListQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get all Spark cluster profiles
+ */
+
+export function useGetSparkClusterList<TData = Awaited<ReturnType<typeof getSparkClusterList>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSparkClusterList>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSparkClusterListQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSparkClusterByNameUrl = (clusterName: string,) => {
+
+
+
+
+  return `/api/clusters/spark/${clusterName}`
+}
+
+/**
+ * @summary Get Spark cluster by name
+ */
+export const getSparkClusterByName = async (clusterName: string, options?: RequestInit): Promise<SparkClusterFull> => {
+
+  return customFetch<SparkClusterFull>(getGetSparkClusterByNameUrl(clusterName),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSparkClusterByNameQueryKey = (clusterName: string,) => {
+    return [
+    `/api/clusters/spark/${clusterName}`
+    ] as const;
+    }
+
+
+export const getGetSparkClusterByNameQueryOptions = <TData = Awaited<ReturnType<typeof getSparkClusterByName>>, TError = ErrorType<unknown>>(clusterName: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSparkClusterByName>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSparkClusterByNameQueryKey(clusterName);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSparkClusterByName>>> = ({ signal }) => getSparkClusterByName(clusterName, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(clusterName), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSparkClusterByName>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSparkClusterByNameQueryResult = NonNullable<Awaited<ReturnType<typeof getSparkClusterByName>>>
+export type GetSparkClusterByNameQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get Spark cluster by name
+ */
+
+export function useGetSparkClusterByName<TData = Awaited<ReturnType<typeof getSparkClusterByName>>, TError = ErrorType<unknown>>(
+ clusterName: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSparkClusterByName>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSparkClusterByNameQueryOptions(clusterName,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getStartSparkClusterByNameUrl = (clusterName: string,) => {
+
+
+
+
+  return `/api/clusters/spark/${clusterName}/start`
+}
+
+/**
+ * @summary Start a specific Spark cluster
+ */
+export const startSparkClusterByName = async (clusterName: string, options?: RequestInit): Promise<ActionResult> => {
+
+  return customFetch<ActionResult>(getStartSparkClusterByNameUrl(clusterName),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getStartSparkClusterByNameMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSparkClusterByName>>, TError,{clusterName: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startSparkClusterByName>>, TError,{clusterName: string}, TContext> => {
+
+const mutationKey = ['startSparkClusterByName'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startSparkClusterByName>>, {clusterName: string}> = (props) => {
+          const {clusterName} = props ?? {};
+
+          return  startSparkClusterByName(clusterName,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartSparkClusterByNameMutationResult = NonNullable<Awaited<ReturnType<typeof startSparkClusterByName>>>
+
+    export type StartSparkClusterByNameMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start a specific Spark cluster
+ */
+export const useStartSparkClusterByName = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startSparkClusterByName>>, TError,{clusterName: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startSparkClusterByName>>,
+        TError,
+        {clusterName: string},
+        TContext
+      > => {
+      return useMutation(getStartSparkClusterByNameMutationOptions(options));
+    }
+
+export const getStopSparkClusterByNameUrl = (clusterName: string,) => {
+
+
+
+
+  return `/api/clusters/spark/${clusterName}/stop`
+}
+
+/**
+ * @summary Stop a specific Spark cluster
+ */
+export const stopSparkClusterByName = async (clusterName: string, options?: RequestInit): Promise<ActionResult> => {
+
+  return customFetch<ActionResult>(getStopSparkClusterByNameUrl(clusterName),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getStopSparkClusterByNameMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopSparkClusterByName>>, TError,{clusterName: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stopSparkClusterByName>>, TError,{clusterName: string}, TContext> => {
+
+const mutationKey = ['stopSparkClusterByName'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stopSparkClusterByName>>, {clusterName: string}> = (props) => {
+          const {clusterName} = props ?? {};
+
+          return  stopSparkClusterByName(clusterName,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StopSparkClusterByNameMutationResult = NonNullable<Awaited<ReturnType<typeof stopSparkClusterByName>>>
+
+    export type StopSparkClusterByNameMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Stop a specific Spark cluster
+ */
+export const useStopSparkClusterByName = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopSparkClusterByName>>, TError,{clusterName: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof stopSparkClusterByName>>,
+        TError,
+        {clusterName: string},
+        TContext
+      > => {
+      return useMutation(getStopSparkClusterByNameMutationOptions(options));
+    }
+
+export const getScaleSparkClusterByNameUrl = (clusterName: string,) => {
+
+
+
+
+  return `/api/clusters/spark/${clusterName}/scale`
+}
+
+/**
+ * @summary Scale a specific Spark cluster workers
+ */
+export const scaleSparkClusterByName = async (clusterName: string,
+    scaleClusterInput: ScaleClusterInput, options?: RequestInit): Promise<ActionResult> => {
+
+  return customFetch<ActionResult>(getScaleSparkClusterByNameUrl(clusterName),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scaleClusterInput,)
+  }
+);}
+
+
+
+
+export const getScaleSparkClusterByNameMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scaleSparkClusterByName>>, TError,{clusterName: string;data: BodyType<ScaleClusterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof scaleSparkClusterByName>>, TError,{clusterName: string;data: BodyType<ScaleClusterInput>}, TContext> => {
+
+const mutationKey = ['scaleSparkClusterByName'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scaleSparkClusterByName>>, {clusterName: string;data: BodyType<ScaleClusterInput>}> = (props) => {
+          const {clusterName,data} = props ?? {};
+
+          return  scaleSparkClusterByName(clusterName,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScaleSparkClusterByNameMutationResult = NonNullable<Awaited<ReturnType<typeof scaleSparkClusterByName>>>
+    export type ScaleSparkClusterByNameMutationBody = BodyType<ScaleClusterInput>
+    export type ScaleSparkClusterByNameMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Scale a specific Spark cluster workers
+ */
+export const useScaleSparkClusterByName = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scaleSparkClusterByName>>, TError,{clusterName: string;data: BodyType<ScaleClusterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof scaleSparkClusterByName>>,
+        TError,
+        {clusterName: string;data: BodyType<ScaleClusterInput>},
+        TContext
+      > => {
+      return useMutation(getScaleSparkClusterByNameMutationOptions(options));
+    }
+
+export const getUpdateSparkClusterConfigUrl = (clusterName: string,) => {
+
+
+
+
+  return `/api/clusters/spark/${clusterName}/config`
+}
+
+/**
+ * @summary Update Spark cluster configuration
+ */
+export const updateSparkClusterConfig = async (clusterName: string,
+    clusterConfigInput: ClusterConfigInput, options?: RequestInit): Promise<ActionResult> => {
+
+  return customFetch<ActionResult>(getUpdateSparkClusterConfigUrl(clusterName),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      clusterConfigInput,)
+  }
+);}
+
+
+
+
+export const getUpdateSparkClusterConfigMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSparkClusterConfig>>, TError,{clusterName: string;data: BodyType<ClusterConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSparkClusterConfig>>, TError,{clusterName: string;data: BodyType<ClusterConfigInput>}, TContext> => {
+
+const mutationKey = ['updateSparkClusterConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSparkClusterConfig>>, {clusterName: string;data: BodyType<ClusterConfigInput>}> = (props) => {
+          const {clusterName,data} = props ?? {};
+
+          return  updateSparkClusterConfig(clusterName,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSparkClusterConfigMutationResult = NonNullable<Awaited<ReturnType<typeof updateSparkClusterConfig>>>
+    export type UpdateSparkClusterConfigMutationBody = BodyType<ClusterConfigInput>
+    export type UpdateSparkClusterConfigMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update Spark cluster configuration
+ */
+export const useUpdateSparkClusterConfig = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSparkClusterConfig>>, TError,{clusterName: string;data: BodyType<ClusterConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSparkClusterConfig>>,
+        TError,
+        {clusterName: string;data: BodyType<ClusterConfigInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateSparkClusterConfigMutationOptions(options));
+    }
 
 export const getGetServicesUrl = () => {
 

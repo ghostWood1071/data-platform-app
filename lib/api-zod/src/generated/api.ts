@@ -148,6 +148,143 @@ export const GetSparkEventsResponse = zod.array(GetSparkEventsResponseItem)
 
 
 /**
+ * @summary Get all Spark cluster profiles
+ */
+export const GetSparkClusterListResponse = zod.object({
+  "clusters": zod.array(zod.object({
+  "clusterName": zod.string(),
+  "namespace": zod.string(),
+  "size": zod.enum(['small', 'medium', 'large']),
+  "status": zod.enum(['RUNNING', 'STOPPED', 'SCALING', 'UNKNOWN']),
+  "currentWorkerReplicas": zod.number(),
+  "desiredWorkerReplicas": zod.number(),
+  "defaultWorkerReplicas": zod.number(),
+  "minWorkers": zod.number(),
+  "maxWorkers": zod.number(),
+  "driverCpu": zod.string(),
+  "driverMemory": zod.string(),
+  "workerCpu": zod.string(),
+  "workerMemory": zod.string(),
+  "sparkMasterUrl": zod.string(),
+  "sparkUiUrl": zod.string(),
+  "executorMemory": zod.string().nullish(),
+  "executorCores": zod.number().nullish(),
+  "shufflePartitions": zod.number().nullish(),
+  "dynamicAllocationEnabled": zod.boolean().nullish()
+}))
+})
+
+
+/**
+ * @summary Get Spark cluster by name
+ */
+export const GetSparkClusterByNameParams = zod.object({
+  "clusterName": zod.coerce.string()
+})
+
+export const GetSparkClusterByNameResponse = zod.object({
+  "cluster": zod.object({
+  "clusterName": zod.string(),
+  "namespace": zod.string(),
+  "size": zod.enum(['small', 'medium', 'large']),
+  "status": zod.enum(['RUNNING', 'STOPPED', 'SCALING', 'UNKNOWN']),
+  "currentWorkerReplicas": zod.number(),
+  "desiredWorkerReplicas": zod.number(),
+  "defaultWorkerReplicas": zod.number(),
+  "minWorkers": zod.number(),
+  "maxWorkers": zod.number(),
+  "driverCpu": zod.string(),
+  "driverMemory": zod.string(),
+  "workerCpu": zod.string(),
+  "workerMemory": zod.string(),
+  "sparkMasterUrl": zod.string(),
+  "sparkUiUrl": zod.string(),
+  "executorMemory": zod.string().nullish(),
+  "executorCores": zod.number().nullish(),
+  "shufflePartitions": zod.number().nullish(),
+  "dynamicAllocationEnabled": zod.boolean().nullish()
+}),
+  "pods": zod.array(zod.object({
+  "podName": zod.string(),
+  "role": zod.enum(['master', 'worker']),
+  "status": zod.string(),
+  "node": zod.string(),
+  "cpu": zod.string(),
+  "memory": zod.string(),
+  "age": zod.string()
+})).optional()
+})
+
+
+/**
+ * @summary Start a specific Spark cluster
+ */
+export const StartSparkClusterByNameParams = zod.object({
+  "clusterName": zod.coerce.string()
+})
+
+export const StartSparkClusterByNameResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Stop a specific Spark cluster
+ */
+export const StopSparkClusterByNameParams = zod.object({
+  "clusterName": zod.coerce.string()
+})
+
+export const StopSparkClusterByNameResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Scale a specific Spark cluster workers
+ */
+export const ScaleSparkClusterByNameParams = zod.object({
+  "clusterName": zod.coerce.string()
+})
+
+export const ScaleSparkClusterByNameBody = zod.object({
+  "workers": zod.number()
+})
+
+export const ScaleSparkClusterByNameResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Update Spark cluster configuration
+ */
+export const UpdateSparkClusterConfigParams = zod.object({
+  "clusterName": zod.coerce.string()
+})
+
+export const UpdateSparkClusterConfigBody = zod.object({
+  "driverCpu": zod.string().optional(),
+  "driverMemory": zod.string().optional(),
+  "workerCpu": zod.string().optional(),
+  "workerMemory": zod.string().optional(),
+  "executorMemory": zod.string().optional(),
+  "executorCores": zod.number().optional(),
+  "shufflePartitions": zod.number().optional(),
+  "dynamicAllocationEnabled": zod.boolean().optional(),
+  "desiredWorkerReplicas": zod.number().optional()
+})
+
+export const UpdateSparkClusterConfigResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Get platform services catalog
  */
 export const GetServicesResponseItem = zod.object({
