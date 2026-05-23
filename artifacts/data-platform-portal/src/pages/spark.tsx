@@ -568,7 +568,7 @@ export default function SparkCluster() {
                 </Tooltip>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -604,36 +604,36 @@ export default function SparkCluster() {
                     <TooltipContent>You do not have permission to perform this action.</TooltipContent>
                   )}
                 </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="default"
-                      className="w-full gap-1"
-                      onClick={() => {
-                        if (!cluster || !configForm) return;
-                        const count = parseInt(configForm.desiredWorkerReplicas, 10);
-                        if (isNaN(count) || count < cluster.minWorkers || count > cluster.maxWorkers) {
-                          toast({
-                            title: `Worker count must be between ${cluster.minWorkers} and ${cluster.maxWorkers}`,
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setPendingScaleCount(count);
-                        setShowScaleConfirm(true);
-                      }}
-                      disabled={!canScale || scaleMutation.isPending || !cluster}
-                      data-testid="button-apply-workers"
-                    >
-                      Apply
-                    </Button>
-                  </TooltipTrigger>
-                  {!canScale && (
-                    <TooltipContent>You do not have permission to perform this action.</TooltipContent>
-                  )}
-                </Tooltip>
               </div>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="default"
+                    className="w-full gap-1"
+                    onClick={() => {
+                      if (!cluster || !configForm) return;
+                      const count = parseInt(configForm.desiredWorkerReplicas, 10);
+                      if (isNaN(count) || count < cluster.minWorkers || count > cluster.maxWorkers) {
+                        toast({
+                          title: `Worker count must be between ${cluster.minWorkers} and ${cluster.maxWorkers}`,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setPendingScaleCount(count);
+                      setShowScaleConfirm(true);
+                    }}
+                    disabled={!canScale || scaleMutation.isPending || !cluster}
+                    data-testid="button-apply-workers"
+                  >
+                    Apply Worker Count
+                  </Button>
+                </TooltipTrigger>
+                {!canScale && (
+                  <TooltipContent>You do not have permission to perform this action.</TooltipContent>
+                )}
+              </Tooltip>
             </CardContent>
           </Card>
 
