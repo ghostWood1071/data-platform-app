@@ -136,8 +136,12 @@ export default function SparkCluster() {
     }
   );
 
-  const cluster = clusterFull?.cluster;
-  const pods = clusterFull?.pods ?? [];
+  const cluster = useMemo(() => {
+    if (clusterFull?.cluster) return clusterFull.cluster;
+    return null;
+  }, [clusterFull?.cluster]);
+
+  const pods = Array.isArray(clusterFull?.pods) ? clusterFull.pods : [];
 
   const startMutation = useStartSparkClusterByName();
   const stopMutation = useStopSparkClusterByName();
