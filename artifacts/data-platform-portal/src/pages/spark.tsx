@@ -50,7 +50,7 @@ export default function SparkCluster() {
 
   const handleStart = async () => {
     try {
-      await startMutation.mutateAsync({});
+      await startMutation.mutateAsync();
       toast({ title: "Spark cluster started successfully" });
     } catch (e) {
       toast({ title: "Started cluster (Mock)", description: "Backend not connected." });
@@ -60,7 +60,7 @@ export default function SparkCluster() {
   const handleStop = async () => {
     setShowStopConfirm(false);
     try {
-      await stopMutation.mutateAsync({});
+      await stopMutation.mutateAsync();
       toast({ title: "Spark cluster stopped successfully" });
     } catch (e) {
       toast({ title: "Stopped cluster (Mock)", description: "Backend not connected." });
