@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import type { User } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { User } from "@workspace/api-client-react";
 import { MOCK_USERS, MOCK_ROLES } from "../data/mock";
 
 interface AuthUser extends User {

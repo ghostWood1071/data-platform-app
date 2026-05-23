@@ -163,6 +163,9 @@ importers:
       '@tailwindcss/oxide-win32-x64-msvc':
         specifier: ^4.3.0
         version: 4.3.0
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
       lightningcss-win32-x64-msvc:
         specifier: ^1.32.0
         version: 1.32.0

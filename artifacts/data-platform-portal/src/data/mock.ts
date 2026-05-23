@@ -1,4 +1,4 @@
-import type { SparkCluster, SparkPod, PlatformService, User, AuditLog, Role } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { SparkCluster, SparkPod, PlatformService, User, AuditLog, Role } from "@workspace/api-client-react";
 
 export const MOCK_SPARK_CLUSTER: SparkCluster = {
   clusterName: "data-exp-small",

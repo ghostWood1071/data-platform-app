@@ -3,6 +3,7 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 
-setBaseUrl("http://localhost:8080");
+const apiUrl = import.meta.env.VITE_API_URL || "";
+setBaseUrl(apiUrl);
 
 createRoot(document.getElementById("root")!).render(<App />);

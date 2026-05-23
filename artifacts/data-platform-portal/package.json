@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "cross-env PORT=23721 BASE_PATH=/ vite --config vite.config.ts --host 0.0.0.0",
+    "dev": "node ../../scripts/ensure-cross-env.mjs && cross-env PORT=23721 BASE_PATH=/ vite --config vite.config.ts --host 0.0.0.0",
+    "dev:windows": "node ../../scripts/ensure-cross-env.mjs && cross-env VITE_API_URL=http://localhost:8080 PORT=23721 BASE_PATH=/ vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
