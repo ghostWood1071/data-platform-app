@@ -3,6 +3,7 @@ import {
   SparkReleaseNameSchema,
   StartSparkClusterRequestSchema,
   ResizeSparkClusterRequestSchema,
+  UpdateSparkClusterSettingsRequestSchema,
 } from "@workspace/api-zod";
 import { sparkClusterService } from "../services/spark-cluster.service";
 import { sparkClusterStatusService } from "../services/spark-cluster-status.service";
@@ -14,7 +15,8 @@ type SparkClusterPermission =
   | "spark_cluster:view"
   | "spark_cluster:start"
   | "spark_cluster:stop"
-  | "spark_cluster:resize";
+  | "spark_cluster:resize"
+  | "spark_cluster:settings";
 
 function hasSparkClusterPermission(_req: Request, _permission: SparkClusterPermission) {
   // TODO: connect this to the real auth/session permission source when the
@@ -44,6 +46,30 @@ router.get("/", requireSparkClusterPermission("spark_cluster:view"), async (req,
     return res.json(clusters);
   } catch (error) {
     return res.status(500).json({ error: "Failed to fetch spark clusters" });
+  }
+});
+
+// GET /api/spark-clusters/settings
+router.get("/settings", requireSparkClusterPermission("spark_cluster:settings"), async (_req, res): Promise<any> => {
+  try {
+    const settings = await sparkClusterService.getSettings();
+    return res.json(settings);
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to fetch spark settings" });
+  }
+});
+
+// PUT /api/spark-clusters/settings
+router.put("/settings", requireSparkClusterPermission("spark_cluster:settings"), async (req, res): Promise<any> => {
+  try {
+    const bodyResult = UpdateSparkClusterSettingsRequestSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({ error: bodyResult.error.errors });
+    }
+    const settings = await sparkClusterService.updateSettings(bodyResult.data);
+    return res.json(settings);
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to update spark settings" });
   }
 });
 

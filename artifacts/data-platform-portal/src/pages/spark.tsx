@@ -6,7 +6,10 @@ import {
   stopSparkClusterAction,
   resizeSparkClusterAction,
   getSparkClusterOperationsList,
+  getSparkClusterSettings,
+  updateSparkClusterSettings,
   type SparkReleaseName,
+  type UpdateSparkClusterSettingsRequest,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -39,6 +42,8 @@ import {
   Terminal,
   Clock,
   ExternalLink,
+  Settings,
+  Save,
 } from "lucide-react";
 
 const CLUSTER_DISPLAY_NAMES: Record<string, string> = {
@@ -54,6 +59,8 @@ export default function SparkClusterPage() {
   const [selectedReleaseName, setSelectedReleaseName] =
     useState<SparkReleaseName>("data-exp-small");
   const [resizeValue, setResizeValue] = useState<number>(1);
+  const [settingsForm, setSettingsForm] =
+    useState<UpdateSparkClusterSettingsRequest | null>(null);
 
   // Queries
   const { data: clusters, isLoading: clustersLoading } = useQuery({
@@ -68,6 +75,11 @@ export default function SparkClusterPage() {
     refetchInterval: 3000,
   });
 
+  const { data: sparkSettings } = useQuery({
+    queryKey: ["spark-settings"],
+    queryFn: getSparkClusterSettings,
+  });
+
   const selectedCluster = useMemo(
     () => clusters?.find((c) => c.releaseName === selectedReleaseName),
     [clusters, selectedReleaseName],
@@ -78,6 +90,22 @@ export default function SparkClusterPage() {
       setResizeValue(selectedCluster.workerReplicas || 1);
     }
   }, [selectedCluster?.releaseName]);
+
+  useEffect(() => {
+    if (sparkSettings) {
+      setSettingsForm({
+        computeNamespace: sparkSettings.computeNamespace,
+        sparkClusterImage: sparkSettings.sparkClusterImage,
+        sparkVersion: sparkSettings.sparkVersion,
+        pysparkVersion: sparkSettings.pysparkVersion,
+        hiveMetastoreUris: sparkSettings.hiveMetastoreUris,
+        s3aEndpoint: sparkSettings.s3aEndpoint,
+        sparkWarehouseDir: sparkSettings.sparkWarehouseDir,
+        awsAccessKeyId: sparkSettings.awsAccessKeyId,
+        awsSecretAccessKey: sparkSettings.awsSecretAccessKey,
+      });
+    }
+  }, [sparkSettings]);
 
   // Mutations
   const startMutation = useMutation({
@@ -139,12 +167,35 @@ export default function SparkClusterPage() {
       }),
   });
 
+  const settingsMutation = useMutation({
+    mutationFn: (payload: UpdateSparkClusterSettingsRequest) =>
+      updateSparkClusterSettings(payload),
+    onSuccess: () => {
+      toast({ title: "Spark settings saved" });
+      queryClient.invalidateQueries({ queryKey: ["spark-settings"] });
+    },
+    onError: (err: any) =>
+      toast({
+        title: "Failed to save Spark settings",
+        description: err.message,
+        variant: "destructive",
+      }),
+  });
+
   const isOperationRunning = operations?.some(
     (op) => op.status === "PENDING" || op.status === "RUNNING",
   );
   const canStart = hasPermission("spark_cluster:start");
   const canStop = hasPermission("spark_cluster:stop");
   const canResize = hasPermission("spark_cluster:resize");
+  const canEditSettings = hasPermission("spark_cluster:settings");
+
+  function updateSettingsField<K extends keyof UpdateSparkClusterSettingsRequest>(
+    field: K,
+    value: UpdateSparkClusterSettingsRequest[K],
+  ) {
+    setSettingsForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+  }
 
   return (
     <ProtectedRoute permission="spark_cluster:view">
@@ -388,6 +439,154 @@ export default function SparkClusterPage() {
               </div>
 
               <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings size={20} />
+                      Spark Settings
+                    </CardTitle>
+                    <CardDescription>
+                      Values saved here are passed to cluster scripts from the
+                      database.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {settingsForm ? (
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label>Compute Namespace</Label>
+                          <Input
+                            value={settingsForm.computeNamespace}
+                            disabled={!canEditSettings}
+                            onChange={(e) =>
+                              updateSettingsField(
+                                "computeNamespace",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Spark Cluster Image</Label>
+                          <Input
+                            value={settingsForm.sparkClusterImage}
+                            disabled={!canEditSettings}
+                            onChange={(e) =>
+                              updateSettingsField(
+                                "sparkClusterImage",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label>Spark Version</Label>
+                            <Input
+                              value={settingsForm.sparkVersion}
+                              disabled={!canEditSettings}
+                              onChange={(e) =>
+                                updateSettingsField(
+                                  "sparkVersion",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>PySpark Version</Label>
+                            <Input
+                              value={settingsForm.pysparkVersion}
+                              disabled={!canEditSettings}
+                              onChange={(e) =>
+                                updateSettingsField(
+                                  "pysparkVersion",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Hive Metastore URIs</Label>
+                          <Input
+                            value={settingsForm.hiveMetastoreUris}
+                            disabled={!canEditSettings}
+                            onChange={(e) =>
+                              updateSettingsField(
+                                "hiveMetastoreUris",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>S3A Endpoint</Label>
+                          <Input
+                            value={settingsForm.s3aEndpoint}
+                            disabled={!canEditSettings}
+                            onChange={(e) =>
+                              updateSettingsField("s3aEndpoint", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Spark Warehouse Dir</Label>
+                          <Input
+                            value={settingsForm.sparkWarehouseDir}
+                            disabled={!canEditSettings}
+                            onChange={(e) =>
+                              updateSettingsField(
+                                "sparkWarehouseDir",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label>AWS Access Key ID</Label>
+                            <Input
+                              value={settingsForm.awsAccessKeyId}
+                              disabled={!canEditSettings}
+                              onChange={(e) =>
+                                updateSettingsField(
+                                  "awsAccessKeyId",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>AWS Secret Access Key</Label>
+                            <Input
+                              type="password"
+                              value={settingsForm.awsSecretAccessKey}
+                              disabled={!canEditSettings}
+                              onChange={(e) =>
+                                updateSettingsField(
+                                  "awsSecretAccessKey",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          className="w-full gap-2"
+                          disabled={!canEditSettings || settingsMutation.isPending}
+                          onClick={() => settingsMutation.mutate(settingsForm)}
+                        >
+                          <Save size={16} />
+                          Save Settings
+                        </Button>
+                      </div>
+                    ) : (
+                      <Skeleton className="h-64 w-full" />
+                    )}
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">

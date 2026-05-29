@@ -1,0 +1,6 @@
+apiVersion: v2
+name: spark-shared-cluster
+description: Shared Spark Standalone cluster with Spark Connect for Jupyter notebooks
+type: application
+version: 0.1.0
+appVersion: "3.5.7"

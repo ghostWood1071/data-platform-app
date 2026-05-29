@@ -76,3 +76,25 @@ export const SparkClusterOperationDtoSchema = z.object({
 export type SparkClusterOperationDto = z.infer<
   typeof SparkClusterOperationDtoSchema
 >;
+
+export const SparkClusterSettingsDtoSchema = z.object({
+  computeNamespace: z.string().min(1),
+  sparkClusterImage: z.string().min(1),
+  sparkVersion: z.string().min(1),
+  pysparkVersion: z.string().min(1),
+  hiveMetastoreUris: z.string().min(1),
+  s3aEndpoint: z.string().min(1),
+  sparkWarehouseDir: z.string().min(1),
+  awsAccessKeyId: z.string().min(1),
+  awsSecretAccessKey: z.string().min(1),
+  updatedAt: z.string().nullable(),
+});
+export type SparkClusterSettingsDto = z.infer<
+  typeof SparkClusterSettingsDtoSchema
+>;
+
+export const UpdateSparkClusterSettingsRequestSchema =
+  SparkClusterSettingsDtoSchema.omit({ updatedAt: true });
+export type UpdateSparkClusterSettingsRequest = z.infer<
+  typeof UpdateSparkClusterSettingsRequestSchema
+>;

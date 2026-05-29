@@ -1,21 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-RELEASE_NAME=$1
-REPLICAS=$2
+RELEASE="${1:-data-exp-medium}"
+REPLICAS="${2:-2}"
 
-if [ -f ".env" ]; then
-  set -a
-  . ".env"
-  set +a
+cd "$(dirname "$0")/.."
+
+if [ -z "${COMPUTE_NAMESPACE:-}" ]; then
+  echo "Required environment variable COMPUTE_NAMESPACE is not set."
+  echo "When run by the portal API, Spark settings are loaded from PostgreSQL and passed as process env."
+  exit 1
 fi
 
-NAMESPACE="${COMPUTE_NAMESPACE:-compute}"
+echo "Resizing ${RELEASE} workers to replicas=${REPLICAS}"
 
-echo "Operation: RESIZE"
-echo "Release: $RELEASE_NAME"
-echo "Replicas: $REPLICAS"
+kubectl scale statefulset "${RELEASE}-worker" \
+  -n "${COMPUTE_NAMESPACE}" \
+  --replicas="${REPLICAS}"
 
-echo "Scaling workers..."
-kubectl scale statefulset "${RELEASE_NAME}-worker" --replicas="${REPLICAS}" -n "${NAMESPACE}"
-echo "Done."
+kubectl rollout status statefulset "${RELEASE}-worker" -n "${COMPUTE_NAMESPACE}" || true
+kubectl get pods -n "${COMPUTE_NAMESPACE}" -l app.kubernetes.io/instance="${RELEASE}"

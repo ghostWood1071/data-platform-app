@@ -1,0 +1,79 @@
+nameOverride: ""
+
+namespaceOverride: ""
+
+image:
+  repository: ghostwood/spark-shared-cluster
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+
+master:
+  replicas: 1
+  cpu: "500m"
+  memory: "1Gi"
+  port: 17077
+  service:
+    type: ClusterIP
+  webui:
+    enabled: true
+    port: 18080
+
+worker:
+  replicas: 2
+  cores: 2
+  memory: "4g"
+  cpuRequest: "1"
+  cpuLimit: "2"
+  memoryRequest: "4Gi"
+  memoryLimit: "5Gi"
+  webui:
+    port: 18081
+
+connect:
+  enabled: true
+  replicas: 1
+  port: 15002
+  driverPort: 37077
+  blockManagerPort: 37078
+  cpuRequest: "1"
+  cpuLimit: "2"
+  memoryRequest: "2Gi"
+  memoryLimit: "4Gi"
+
+spark:
+  hiveMetastoreUris: "thrift://hive-metastore.metastore.svc.cluster.local:9083"
+  warehouseDir: "s3a://warehouse/"
+  s3aEndpoint: "http://minio-svc-private.storage.svc.cluster.local:9000"
+  s3SecretName: "spark-s3-credentials"
+  eventLog:
+    enabled: "false"
+    dir: "s3a://spark-logs/events"
+
+fairSchedulerXml: |
+  <?xml version="1.0"?>
+  <allocations>
+    <pool name="default">
+      <schedulingMode>FAIR</schedulingMode>
+      <weight>1</weight>
+      <minShare>1</minShare>
+    </pool>
+    <pool name="interactive">
+      <schedulingMode>FAIR</schedulingMode>
+      <weight>2</weight>
+      <minShare>2</minShare>
+    </pool>
+    <pool name="heavy">
+      <schedulingMode>FAIR</schedulingMode>
+      <weight>1</weight>
+      <minShare>1</minShare>
+    </pool>
+    <pool name="admin">
+      <schedulingMode>FAIR</schedulingMode>
+      <weight>3</weight>
+      <minShare>2</minShare>
+    </pool>
+  </allocations>

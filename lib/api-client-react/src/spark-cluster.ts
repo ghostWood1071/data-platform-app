@@ -5,6 +5,8 @@ import {
   StartSparkClusterRequest,
   ResizeSparkClusterRequest,
   SparkReleaseName,
+  SparkClusterSettingsDto,
+  UpdateSparkClusterSettingsRequest,
 } from "@workspace/api-zod";
 
 export type {
@@ -13,6 +15,8 @@ export type {
   StartSparkClusterRequest,
   ResizeSparkClusterRequest,
   SparkReleaseName,
+  SparkClusterSettingsDto,
+  UpdateSparkClusterSettingsRequest,
 } from "@workspace/api-zod";
 
 export const getSparkClustersList = () => {
@@ -74,3 +78,16 @@ export const getSparkClusterOperationsList = (releaseName: SparkReleaseName) => 
 };
 
 export const getSparkClusterOperations = getSparkClusterOperationsList;
+
+export const getSparkClusterSettings = () => {
+  return customFetch<SparkClusterSettingsDto>("/api/spark-clusters/settings");
+};
+
+export const updateSparkClusterSettings = (
+  payload: UpdateSparkClusterSettingsRequest,
+) => {
+  return customFetch<SparkClusterSettingsDto>("/api/spark-clusters/settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+};

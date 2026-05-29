@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "spark-shared-cluster.fullname" . }}-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "spark-shared-cluster.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: master
+spec:
+  replicas: {{ .Values.master.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      component: master
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "spark-shared-cluster.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        component: master
+    spec:
+      serviceAccountName: {{ include "spark-shared-cluster.serviceAccountName" . }}
+      containers:
+        - name: spark-master
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/opt/spark/k8s-scripts/start-master.sh"]
+          ports:
+            - name: master
+              containerPort: {{ .Values.master.port }}
+            - name: webui
+              containerPort: {{ .Values.master.webui.port }}
+          env:
+            - name: SPARK_MASTER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SPARK_MASTER_PORT
+              value: "{{ .Values.master.port }}"
+            - name: SPARK_MASTER_WEBUI_PORT
+              value: "{{ .Values.master.webui.port }}"
+          resources:
+            requests:
+              cpu: {{ .Values.master.cpu | quote }}
+              memory: {{ .Values.master.memory | quote }}
+            limits:
+              cpu: {{ .Values.master.cpu | quote }}
+              memory: {{ .Values.master.memory | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "spark-shared-cluster.fullname" . }}-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: master
+spec:
+  type: {{ .Values.master.service.type }}
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: master
+  ports:
+    - name: master
+      port: {{ .Values.master.port }}
+      targetPort: master
+    - name: webui
+      port: {{ .Values.master.webui.port }}
+      targetPort: webui

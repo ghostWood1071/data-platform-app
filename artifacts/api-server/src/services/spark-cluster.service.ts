@@ -1,13 +1,15 @@
 import { spawn } from "child_process";
 import path from "path";
 import { logger } from "../lib/logger";
-import { db, sparkClusterOperations } from "@workspace/db";
+import { db, sparkClusterOperations, sparkClusterSettings } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import {
   SparkReleaseName,
   SparkClusterSize,
   SparkClusterAction,
   SparkClusterOperationDto,
+  SparkClusterSettingsDto,
+  UpdateSparkClusterSettingsRequest,
 } from "@workspace/api-zod";
 
 export class SparkClusterService {
@@ -77,6 +79,55 @@ export class SparkClusterService {
     return ops.map((op) => this.mapToDto(op));
   }
 
+  async getSettings(): Promise<SparkClusterSettingsDto> {
+    const [settings] = await db
+      .select()
+      .from(sparkClusterSettings)
+      .where(eq(sparkClusterSettings.id, "default"));
+
+    if (settings) return this.mapSettingsToDto(settings);
+
+    const defaults = this.getDefaultSettings();
+    const [created] = await db
+      .insert(sparkClusterSettings)
+      .values({ id: "default", ...defaults })
+      .returning();
+
+    return this.mapSettingsToDto(created);
+  }
+
+  async updateSettings(
+    settings: UpdateSparkClusterSettingsRequest,
+  ): Promise<SparkClusterSettingsDto> {
+    const [updated] = await db
+      .insert(sparkClusterSettings)
+      .values({
+        id: "default",
+        ...settings,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: sparkClusterSettings.id,
+        set: {
+          ...settings,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+
+    logger.info(
+      {
+        computeNamespace: settings.computeNamespace,
+        sparkClusterImage: settings.sparkClusterImage,
+        sparkVersion: settings.sparkVersion,
+        pysparkVersion: settings.pysparkVersion,
+      },
+      "Spark cluster settings updated",
+    );
+
+    return this.mapSettingsToDto(updated);
+  }
+
   private mapToDto(op: any): SparkClusterOperationDto {
     return {
       id: op.id,
@@ -133,7 +184,8 @@ export class SparkClusterService {
     );
 
     try {
-      const result = await this.runScript(scriptPath, args);
+      const settings = await this.getSettings();
+      const result = await this.runScript(scriptPath, args, settings);
       await db
         .update(sparkClusterOperations)
         .set({
@@ -175,12 +227,25 @@ export class SparkClusterService {
   private runScript(
     scriptPath: string,
     args: string[],
+    settings: SparkClusterSettingsDto,
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     return new Promise((resolve, reject) => {
       const child = spawn(scriptPath, args, {
         cwd: this.appRoot,
         shell: false,
-        env: { ...process.env, APPLY_NAMESPACE: "false" },
+        env: {
+          ...process.env,
+          APPLY_NAMESPACE: "false",
+          COMPUTE_NAMESPACE: settings.computeNamespace,
+          SPARK_CLUSTER_IMAGE: settings.sparkClusterImage,
+          SPARK_VERSION: settings.sparkVersion,
+          PYSPARK_VERSION: settings.pysparkVersion,
+          HIVE_METASTORE_URIS: settings.hiveMetastoreUris,
+          S3A_ENDPOINT: settings.s3aEndpoint,
+          SPARK_WAREHOUSE_DIR: settings.sparkWarehouseDir,
+          AWS_ACCESS_KEY_ID: settings.awsAccessKeyId,
+          AWS_SECRET_ACCESS_KEY: settings.awsSecretAccessKey,
+        },
       });
 
       let stdout = "";
@@ -219,6 +284,40 @@ export class SparkClusterService {
         reject(error);
       });
     });
+  }
+
+  private getDefaultSettings(): UpdateSparkClusterSettingsRequest {
+    return {
+      computeNamespace: process.env.COMPUTE_NAMESPACE || "compute",
+      sparkClusterImage:
+        process.env.SPARK_CLUSTER_IMAGE || "ghostwood/spark-notebook:0.0.3",
+      sparkVersion: process.env.SPARK_VERSION || "3.5.7",
+      pysparkVersion: process.env.PYSPARK_VERSION || "3.5.7",
+      hiveMetastoreUris:
+        process.env.HIVE_METASTORE_URIS ||
+        "thrift://hive-metastore.metastore.svc.cluster.local:9083",
+      s3aEndpoint:
+        process.env.S3A_ENDPOINT ||
+        "http://minio-svc-private.storage.svc.cluster.local:9000",
+      sparkWarehouseDir: process.env.SPARK_WAREHOUSE_DIR || "s3a://warehouse/",
+      awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || "minioadmin",
+      awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "minioadmin",
+    };
+  }
+
+  private mapSettingsToDto(settings: any): SparkClusterSettingsDto {
+    return {
+      computeNamespace: settings.computeNamespace,
+      sparkClusterImage: settings.sparkClusterImage,
+      sparkVersion: settings.sparkVersion,
+      pysparkVersion: settings.pysparkVersion,
+      hiveMetastoreUris: settings.hiveMetastoreUris,
+      s3aEndpoint: settings.s3aEndpoint,
+      sparkWarehouseDir: settings.sparkWarehouseDir,
+      awsAccessKeyId: settings.awsAccessKeyId,
+      awsSecretAccessKey: settings.awsSecretAccessKey,
+      updatedAt: settings.updatedAt ? settings.updatedAt.toISOString() : null,
+    };
   }
 }
 

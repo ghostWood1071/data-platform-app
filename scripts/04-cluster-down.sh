@@ -3,13 +3,13 @@ set -euo pipefail
 
 RELEASE_NAME=$1
 
-if [ -f ".env" ]; then
-  set -a
-  . ".env"
-  set +a
+if [ -z "${COMPUTE_NAMESPACE:-}" ]; then
+  echo "Required environment variable COMPUTE_NAMESPACE is not set."
+  echo "When run by the portal API, Spark settings are loaded from PostgreSQL and passed as process env."
+  exit 1
 fi
 
-NAMESPACE="${COMPUTE_NAMESPACE:-compute}"
+NAMESPACE="${COMPUTE_NAMESPACE}"
 
 echo "Operation: STOP"
 echo "Release: $RELEASE_NAME"

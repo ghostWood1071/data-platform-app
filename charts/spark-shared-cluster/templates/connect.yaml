@@ -1,0 +1,129 @@
+{{- if .Values.connect.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "spark-shared-cluster.fullname" . }}-connect
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "spark-shared-cluster.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: connect
+spec:
+  replicas: {{ .Values.connect.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      component: connect
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "spark-shared-cluster.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        component: connect
+    spec:
+      serviceAccountName: {{ include "spark-shared-cluster.serviceAccountName" . }}
+      volumes:
+        - name: spark-conf
+          configMap:
+            name: {{ include "spark-shared-cluster.fullname" . }}-conf
+      containers:
+        - name: spark-connect
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /opt/spark/k8s-scripts/start-connect.sh
+          ports:
+            - name: connect
+              containerPort: {{ .Values.connect.port }}
+            - name: driver-rpc
+              containerPort: {{ .Values.connect.driverPort }}
+            - name: blockmanager
+              containerPort: {{ .Values.connect.blockManagerPort }}
+          env:
+            - name: SPARK_MASTER_URL
+              value: 'spark://{{ include "spark-shared-cluster.fullname" . }}-master.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.master.port }}'
+
+            - name: SPARK_CONNECT_PORT
+              value: "{{ .Values.connect.port }}"
+
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+            - name: SPARK_DRIVER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+            - name: SPARK_DRIVER_BIND_ADDRESS
+              value: "0.0.0.0"
+
+            - name: SPARK_DRIVER_PORT
+              value: "{{ .Values.connect.driverPort }}"
+
+            - name: SPARK_BLOCKMANAGER_PORT
+              value: "{{ .Values.connect.blockManagerPort }}"
+
+            - name: HIVE_METASTORE_URIS
+              value: "{{ .Values.spark.hiveMetastoreUris }}"
+
+            - name: SPARK_WAREHOUSE_DIR
+              value: "{{ .Values.spark.warehouseDir }}"
+
+            - name: S3A_ENDPOINT
+              value: "{{ .Values.spark.s3aEndpoint }}"
+
+            - name: SPARK_EVENT_LOG_ENABLED
+              value: "{{ .Values.spark.eventLog.enabled }}"
+
+            - name: SPARK_EVENT_LOG_DIR
+              value: "{{ .Values.spark.eventLog.dir }}"
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.spark.s3SecretName }}
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.spark.s3SecretName }}
+                  key: AWS_SECRET_ACCESS_KEY
+          volumeMounts:
+            - name: spark-conf
+              mountPath: /opt/spark/conf/fairscheduler.xml
+              subPath: fairscheduler.xml
+          resources:
+            requests:
+              cpu: {{ .Values.connect.cpuRequest | quote }}
+              memory: {{ .Values.connect.memoryRequest | quote }}
+            limits:
+              cpu: {{ .Values.connect.cpuLimit | quote }}
+              memory: {{ .Values.connect.memoryLimit | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "spark-shared-cluster.fullname" . }}-connect
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: connect
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    component: connect
+  ports:
+    - name: connect
+      port: {{ .Values.connect.port }}
+      targetPort: connect
+    - name: driver-rpc
+      port: {{ .Values.connect.driverPort }}
+      targetPort: driver-rpc
+    - name: blockmanager
+      port: {{ .Values.connect.blockManagerPort }}
+      targetPort: blockmanager
+{{- end }}

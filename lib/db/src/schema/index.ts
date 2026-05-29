@@ -24,5 +24,22 @@ export const sparkClusterOperations = pgTable("spark_cluster_operations", {
   finishedAt: timestamp("finished_at"),
 });
 
+export const sparkClusterSettings = pgTable("spark_cluster_settings", {
+  id: text("id").primaryKey().default("default"),
+  computeNamespace: text("compute_namespace").notNull(),
+  sparkClusterImage: text("spark_cluster_image").notNull(),
+  sparkVersion: text("spark_version").notNull(),
+  pysparkVersion: text("pyspark_version").notNull(),
+  hiveMetastoreUris: text("hive_metastore_uris").notNull(),
+  s3aEndpoint: text("s3a_endpoint").notNull(),
+  sparkWarehouseDir: text("spark_warehouse_dir").notNull(),
+  awsAccessKeyId: text("aws_access_key_id").notNull(),
+  awsSecretAccessKey: text("aws_secret_access_key").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export type SparkClusterOperation = typeof sparkClusterOperations.$inferSelect;
 export type NewSparkClusterOperation = typeof sparkClusterOperations.$inferInsert;
+export type SparkClusterSettings = typeof sparkClusterSettings.$inferSelect;
+export type NewSparkClusterSettings = typeof sparkClusterSettings.$inferInsert;

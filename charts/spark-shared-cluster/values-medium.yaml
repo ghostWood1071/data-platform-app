@@ -1,0 +1,14 @@
+worker:
+  replicas: 2
+  cores: 4
+  memory: "8g"
+  cpuRequest: "2"
+  cpuLimit: "4"
+  memoryRequest: "8Gi"
+  memoryLimit: "10Gi"
+
+connect:
+  cpuRequest: "1"
+  cpuLimit: "2"
+  memoryRequest: "2Gi"
+  memoryLimit: "4Gi"

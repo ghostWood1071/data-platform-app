@@ -15,6 +15,8 @@ export {
   getSparkClusterOperation,
   getSparkClusterOperationsList,
   getSparkClusterOperations,
+  getSparkClusterSettings,
+  updateSparkClusterSettings,
 } from "./spark-cluster";
 export type {
   SparkClusterDto,
@@ -22,6 +24,8 @@ export type {
   StartSparkClusterRequest,
   ResizeSparkClusterRequest,
   SparkReleaseName,
+  SparkClusterSettingsDto,
+  UpdateSparkClusterSettingsRequest,
 } from "./spark-cluster";
 export { setBaseUrl, setAuthTokenGetter } from "./custom-fetch";
 export type { AuthTokenGetter } from "./custom-fetch";
