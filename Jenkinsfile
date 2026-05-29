@@ -20,7 +20,7 @@ pipeline {
     )
     string(
       name: 'KUBE_CONTEXT',
-      defaultValue: '',
+      defaultValue: 'kubernetes-admin@kubernetes',
       description: 'Optional kubectl context to use for deployment.'
     )
   }
