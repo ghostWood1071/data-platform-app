@@ -102,10 +102,6 @@ export default function Login() {
         </form>
       </Card>
       
-      <div className="mt-8 text-xs text-sidebar-foreground/40 space-y-1 text-center">
-        <p>Default account: admin</p>
-        <p>Default password: admin</p>
-      </div>
     </div>
   );
 }
