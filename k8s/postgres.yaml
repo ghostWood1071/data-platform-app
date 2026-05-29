@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: portal-postgres-secret
+  namespace: portal
+type: Opaque
+stringData:
+  POSTGRES_DB: data_platform
+  POSTGRES_USER: data_platform
+  POSTGRES_PASSWORD: data_platform_password
+  DATABASE_URL: postgres://data_platform:data_platform_password@portal-postgres.portal.svc.cluster.local:5432/data_platform
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-postgres-initdb
+  namespace: portal
+data:
+  001-init.sql: |
+    CREATE TABLE IF NOT EXISTS "spark_cluster_operations" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+      "action" text NOT NULL,
+      "release_name" text NOT NULL,
+      "size" text,
+      "replicas" integer,
+      "status" text NOT NULL,
+      "stdout" text,
+      "stderr" text,
+      "error_message" text,
+      "requested_by" text,
+      "metadata" jsonb,
+      "created_at" timestamp DEFAULT now() NOT NULL,
+      "started_at" timestamp,
+      "finished_at" timestamp
+    );
+
+    CREATE TABLE IF NOT EXISTS "spark_cluster_settings" (
+      "id" text PRIMARY KEY DEFAULT 'default' NOT NULL,
+      "compute_namespace" text NOT NULL,
+      "spark_cluster_image" text NOT NULL,
+      "spark_version" text NOT NULL,
+      "pyspark_version" text NOT NULL,
+      "hive_metastore_uris" text NOT NULL,
+      "s3a_endpoint" text NOT NULL,
+      "spark_warehouse_dir" text NOT NULL,
+      "aws_access_key_id" text NOT NULL,
+      "aws_secret_access_key" text NOT NULL,
+      "created_at" timestamp DEFAULT now() NOT NULL,
+      "updated_at" timestamp DEFAULT now() NOT NULL
+    );
+
+    INSERT INTO "spark_cluster_settings" (
+      "id",
+      "compute_namespace",
+      "spark_cluster_image",
+      "spark_version",
+      "pyspark_version",
+      "hive_metastore_uris",
+      "s3a_endpoint",
+      "spark_warehouse_dir",
+      "aws_access_key_id",
+      "aws_secret_access_key"
+    )
+    VALUES (
+      'default',
+      'compute',
+      'ghostwood/spark-notebook:0.0.3',
+      '3.5.7',
+      '3.5.7',
+      'thrift://hive-metastore.metastore.svc.cluster.local:9083',
+      'http://minio-svc-private.storage.svc.cluster.local:9000',
+      's3a://warehouse/',
+      'minioadmin',
+      'minioadmin'
+    )
+    ON CONFLICT ("id") DO NOTHING;
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portal-postgres-data
+  namespace: portal
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal-postgres
+  namespace: portal
+  labels:
+    app: portal-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portal-postgres
+  template:
+    metadata:
+      labels:
+        app: portal-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: portal-postgres-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: portal-postgres-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: portal-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: portal-postgres-data
+        - name: initdb
+          configMap:
+            name: portal-postgres-initdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal-postgres
+  namespace: portal
+spec:
+  selector:
+    app: portal-postgres
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
