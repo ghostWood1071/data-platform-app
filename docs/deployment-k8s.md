@@ -16,15 +16,15 @@ The app manifest must not use a local-only image such as `data-portal-app:latest
 From a machine with Docker access:
 
 ```bash
-docker build -t ghcr.io/<org>/data-platform-app:<tag> .
-docker push ghcr.io/<org>/data-platform-app:<tag>
+docker build -t ghostwood/data-platform-portal:1.0.0 .
+docker push ghostwood/data-platform-portal:1.0.0
 ```
 
 Then update the image used by Kustomize:
 
 ```bash
 cd k8s
-kubectl kustomize . | sed 's#ghcr.io/your-org/data-platform-app:latest#ghcr.io/<org>/data-platform-app:<tag>#g' | kubectl apply -f -
+kubectl apply -k k8s
 ```
 
 Or edit `k8s/kustomization.yaml`:
@@ -32,8 +32,8 @@ Or edit `k8s/kustomization.yaml`:
 ```yaml
 images:
   - name: data-portal-app
-    newName: ghcr.io/<org>/data-platform-app
-    newTag: <tag>
+    newName: ghostwood/data-platform-portal
+    newTag: 1.0.0
 ```
 
 ## Deploy
@@ -110,7 +110,7 @@ If you see Kubernetes pulling `docker.io/library/data-portal-app:latest`, the im
 
 ```bash
 kubectl -n portal set image deployment/data-portal-app \
-  data-portal-app=ghcr.io/<org>/data-platform-app:<tag>
+  data-portal-app=ghostwood/data-platform-portal:1.0.0
 ```
 
 ### Database Init Did Not Run

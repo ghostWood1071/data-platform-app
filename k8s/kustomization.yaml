@@ -8,5 +8,5 @@ resources:
 
 images:
   - name: data-portal-app
-    newName: ghcr.io/your-org/data-platform-app
-    newTag: latest
+    newName: ghostwood/data-platform-portal
+    newTag: 1.0.0
