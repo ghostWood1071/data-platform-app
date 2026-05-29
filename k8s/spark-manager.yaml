@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spark-portal-env
+  namespace: portal
+type: Opaque
+stringData:
+  .env: |
+    COMPUTE_NAMESPACE=compute
+    SPARK_CLUSTER_IMAGE=ghostwood/mbs-spark:1.0.7-protobuf
+    HIVE_METASTORE_URIS=thrift://hive-metastore.metastore.svc.cluster.local:9083
+    S3A_ENDPOINT=http://minio-svc-private.storage.svc.cluster.local:9000
+    SPARK_WAREHOUSE_DIR=s3a://warehouse/
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: portal-api-server
+  namespace: portal
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-cluster-manager
+  namespace: compute
+rules:
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+      - deployments/scale
+      - statefulsets/scale
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - configmaps
+      - secrets
+      - serviceaccounts
+      - persistentvolumeclaims
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: portal-api-server-spark-manager
+  namespace: compute
+subjects:
+  - kind: ServiceAccount
+    name: portal-api-server
+    namespace: portal
+roleRef:
+  kind: Role
+  name: spark-cluster-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: portal-api-server-namespace-reader
+rules:
+  - apiGroups: [""]
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: portal-api-server-namespace-reader
+subjects:
+  - kind: ServiceAccount
+    name: portal-api-server
+    namespace: portal
+roleRef:
+  kind: ClusterRole
+  name: portal-api-server-namespace-reader
+  apiGroup: rbac.authorization.k8s.io

@@ -1,20 +1,28 @@
-// Export your models here. Add one export per file
-// export * from "./posts";
-//
-// Each model/table should ideally be split into different files.
-// Each model/table should define a Drizzle table, insert schema, and types:
-//
-//   import { pgTable, text, serial } from "drizzle-orm/pg-core";
-//   import { createInsertSchema } from "drizzle-zod";
-//   import { z } from "zod/v4";
-//
-//   export const postsTable = pgTable("posts", {
-//     id: serial("id").primaryKey(),
-//     title: text("title").notNull(),
-//   });
-//
-//   export const insertPostSchema = createInsertSchema(postsTable).omit({ id: true });
-//   export type InsertPost = z.infer<typeof insertPostSchema>;
-//   export type Post = typeof postsTable.$inferSelect;
+import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  uuid,
+  jsonb,
+} from "drizzle-orm/pg-core";
 
-export {}
+export const sparkClusterOperations = pgTable("spark_cluster_operations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  action: text("action").notNull(), // START | STOP | RESIZE
+  releaseName: text("release_name").notNull(),
+  size: text("size"),
+  replicas: integer("replicas"),
+  status: text("status").notNull(), // PENDING | RUNNING | SUCCESS | FAILED
+  stdout: text("stdout"),
+  stderr: text("stderr"),
+  errorMessage: text("error_message"),
+  requestedBy: text("requested_by"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+});
+
+export type SparkClusterOperation = typeof sparkClusterOperations.$inferSelect;
+export type NewSparkClusterOperation = typeof sparkClusterOperations.$inferInsert;

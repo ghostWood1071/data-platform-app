@@ -7,6 +7,7 @@ import servicesRouter from "./services";
 import usersRouter from "./users";
 import rolesRouter from "./roles";
 import auditRouter from "./audit";
+import sparkClustersRouter from "./spark-cluster.routes";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(servicesRouter);
 router.use(usersRouter);
 router.use(rolesRouter);
 router.use(auditRouter);
+router.use("/spark-clusters", sparkClustersRouter);
 
 export default router;

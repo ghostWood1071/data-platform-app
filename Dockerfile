@@ -1,29 +1,20 @@
 # Dockerfile for Data Platform App
 
 # Build stage
-FROM node:20-slim AS builder
+FROM node:24.16.0-slim AS builder
 
 # Set up pnpm
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@11.2.2 --activate
 
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY artifacts/api-server/package.json ./artifacts/api-server/
-COPY artifacts/data-platform-portal/package.json ./artifacts/data-platform-portal/
-COPY lib/api-client-react/package.json ./lib/api-client-react/
-COPY lib/api-zod/package.json ./lib/api-zod/
-COPY lib/db/package.json ./lib/db/
-COPY scripts/package.json ./scripts/
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy the rest of the source code
+# Copy source code without local node_modules/dist artifacts.
 COPY . .
+
+# Install dependencies after all workspace manifests are present.
+RUN pnpm install --frozen-lockfile
 
 # Build the project
 # We need to set environment variables for Vite during build if necessary
@@ -34,17 +25,41 @@ RUN export NODE_ENV=production && \
     pnpm run build
 
 # Final stage
-FROM node:20-slim AS runner
+FROM node:24.16.0-slim AS runner
 
 WORKDIR /app
 
-# Install Nginx
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+# Install Nginx and other tools
+RUN apt-get update && apt-get install -y \
+    nginx \
+    bash \
+    curl \
+    ca-certificates \
+    tar \
+    gzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+    rm kubectl
+
+# Install helm
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
+    chmod 700 get_helm.sh && \
+    ./get_helm.sh && \
+    rm get_helm.sh
 
 # Copy backend build
 COPY --from=builder /app/artifacts/api-server/dist ./artifacts/api-server/dist
 COPY --from=builder /app/artifacts/api-server/package.json ./artifacts/api-server/
 COPY --from=builder /app/node_modules ./node_modules
+
+# Copy scripts, charts, k8s
+COPY scripts /app/scripts
+COPY charts /app/charts
+COPY k8s /app/k8s
+RUN chmod +x /app/scripts/*.sh
 
 # Copy frontend build to nginx public directory
 COPY --from=builder /app/artifacts/data-platform-portal/dist/public /var/www/html
@@ -69,7 +84,7 @@ RUN echo 'server { \n\
 }' > /etc/nginx/sites-available/default
 
 # Expose port 80
-EXpose 80
+EXPOSE 80
 
 # Start backend and nginx
 # We use a simple script to run both
