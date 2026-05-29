@@ -29,7 +29,7 @@ export default function Login() {
       const redirect = params.get("redirect");
       setLocation(redirect || "/dashboard");
     } catch (err) {
-      setError("Invalid credentials. Try: admin/admin");
+      setError("Invalid credentials");
     } finally {
       setIsLoading(false);
     }
