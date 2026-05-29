@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: data-platform-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-data_platform}
+      POSTGRES_USER: ${POSTGRES_USER:-data_platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-data_platform_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./lib/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: data-platform-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-data_platform}:${POSTGRES_PASSWORD:-data_platform_password}@db:5432/${POSTGRES_DB:-data_platform}
+      APP_ROOT: /app
+      SPARK_SCRIPT_DIR: /app/scripts
+      APPLY_NAMESPACE: "false"
+      COMPUTE_NAMESPACE: ${COMPUTE_NAMESPACE:-compute}
+      SPARK_CLUSTER_IMAGE: ${SPARK_CLUSTER_IMAGE:-ghostwood/mbs-spark:1.0.7-protobuf}
+      HIVE_METASTORE_URIS: ${HIVE_METASTORE_URIS:-thrift://hive-metastore.metastore.svc.cluster.local:9083}
+      S3A_ENDPOINT: ${S3A_ENDPOINT:-http://minio-svc-private.storage.svc.cluster.local:9000}
+      SPARK_WAREHOUSE_DIR: ${SPARK_WAREHOUSE_DIR:-s3a://warehouse/}
+    ports:
+      - "${APP_PORT:-8080}:80"
+
+volumes:
+  postgres-data:
