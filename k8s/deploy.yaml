@@ -25,6 +25,11 @@ spec:
         env:
         - name: NODE_ENV
           value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: portal-postgres-secret
+              key: DATABASE_URL
         - name: APP_ROOT
           value: /app
         - name: SPARK_SCRIPT_DIR
@@ -65,13 +70,20 @@ metadata:
   name: data-portal-app-ingress
   namespace: portal
   annotations:
-    kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
+  ingressClassName: nginx
   rules:
   - host: portal-app.k8s.tailnet
     http:
       paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: data-portal-app-service
+            port:
+              number: 80
       - path: /
         pathType: Prefix
         backend:
