@@ -6,6 +6,7 @@ import {
   uuid,
   jsonb,
   uniqueIndex,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable(
@@ -59,9 +60,24 @@ export const sparkClusterSettings = pgTable("spark_cluster_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const platformServices = pgTable("platform_services", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  namespace: text("namespace").notNull(),
+  status: text("status").notNull().default("Running"),
+  url: text("url").notNull(),
+  category: text("category").notNull(),
+  isJdbc: boolean("is_jdbc").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export type SparkClusterOperation = typeof sparkClusterOperations.$inferSelect;
 export type NewSparkClusterOperation = typeof sparkClusterOperations.$inferInsert;
 export type SparkClusterSettings = typeof sparkClusterSettings.$inferSelect;
 export type NewSparkClusterSettings = typeof sparkClusterSettings.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type PlatformService = typeof platformServices.$inferSelect;
+export type NewPlatformService = typeof platformServices.$inferInsert;

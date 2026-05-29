@@ -299,6 +299,48 @@ export const GetServicesResponseItem = zod.object({
 })
 export const GetServicesResponse = zod.array(GetServicesResponseItem)
 
+/**
+ * @summary Create platform service
+ */
+export const CreateServiceBody = zod.object({
+  "id": zod.string().min(1),
+  "name": zod.string().min(1),
+  "description": zod.string().min(1),
+  "namespace": zod.string().min(1),
+  "status": zod.enum(['Running', 'Stopped', 'Unknown']),
+  "url": zod.string().min(1),
+  "category": zod.string().min(1),
+  "isJdbc": zod.boolean().optional()
+})
+
+export const CreateServiceResponse = GetServicesResponseItem
+
+/**
+ * @summary Update platform service
+ */
+export const UpdateServiceParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateServiceBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "description": zod.string().min(1).optional(),
+  "namespace": zod.string().min(1).optional(),
+  "status": zod.enum(['Running', 'Stopped', 'Unknown']).optional(),
+  "url": zod.string().min(1).optional(),
+  "category": zod.string().min(1).optional(),
+  "isJdbc": zod.boolean().optional()
+})
+
+export const UpdateServiceResponse = GetServicesResponseItem
+
+/**
+ * @summary Delete platform service
+ */
+export const DeleteServiceParams = zod.object({
+  "id": zod.coerce.string()
+})
+
 
 /**
  * @summary List all users

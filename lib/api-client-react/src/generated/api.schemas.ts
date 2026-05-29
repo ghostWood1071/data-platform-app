@@ -161,6 +161,27 @@ export interface PlatformService {
   isJdbc?: boolean | null;
 }
 
+export interface PlatformServiceInput {
+  id: string;
+  name: string;
+  description: string;
+  namespace: string;
+  status: PlatformServiceStatus;
+  url: string;
+  category: string;
+  isJdbc?: boolean;
+}
+
+export interface PlatformServiceUpdate {
+  name?: string;
+  description?: string;
+  namespace?: string;
+  status?: PlatformServiceStatus;
+  url?: string;
+  category?: string;
+  isJdbc?: boolean;
+}
+
 export type SparkClusterProfileSize = typeof SparkClusterProfileSize[keyof typeof SparkClusterProfileSize];
 
 

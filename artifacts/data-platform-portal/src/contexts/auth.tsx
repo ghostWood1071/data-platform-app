@@ -14,6 +14,7 @@ interface AuthUser extends User {
 
 interface AuthContextType {
   user: AuthUser | null;
+  isLoading: boolean;
   login: (username: string, password?: string, rememberMe?: boolean) => Promise<AuthUser>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
@@ -31,32 +32,43 @@ function attachPermissions(user: User): AuthUser {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
+    const savedUser = localStorage.getItem(USER_KEY);
+    if (!savedUser) return null;
+    try {
+      return JSON.parse(savedUser) as AuthUser;
+    } catch {
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY)));
 
   useEffect(() => {
-    const savedUser = localStorage.getItem(USER_KEY);
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem(USER_KEY);
-      }
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setIsLoading(false);
+      return;
     }
 
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      getCurrentUser()
-        .then((currentUser) => {
-          const authUser = attachPermissions(currentUser);
-          setUser(authUser);
-          localStorage.setItem(USER_KEY, JSON.stringify(authUser));
-        })
-        .catch(() => {
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-          setUser(null);
-        });
-    }
+    getCurrentUser()
+      .then((currentUser) => {
+        const authUser = attachPermissions(currentUser);
+        setUser(authUser);
+        localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+      })
+      .catch(() => {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        setUser(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
 
   const login = async (
@@ -96,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

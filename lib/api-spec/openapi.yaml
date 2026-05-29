@@ -317,6 +317,61 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PlatformService"
+    post:
+      operationId: createService
+      tags: [services]
+      summary: Create platform service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformServiceInput"
+      responses:
+        "201":
+          description: Service created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformService"
+
+  /services/{id}:
+    patch:
+      operationId: updateService
+      tags: [services]
+      summary: Update platform service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformServiceUpdate"
+      responses:
+        "200":
+          description: Service updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformService"
+    delete:
+      operationId: deleteService
+      tags: [services]
+      summary: Delete platform service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Service deleted
 
   /users:
     get:
@@ -676,6 +731,47 @@ components:
           type: string
         isJdbc:
           type: ["boolean", "null"]
+
+    PlatformServiceInput:
+      type: object
+      required: [id, name, description, namespace, status, url, category]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        namespace:
+          type: string
+        status:
+          type: string
+          enum: [Running, Stopped, Unknown]
+        url:
+          type: string
+        category:
+          type: string
+        isJdbc:
+          type: boolean
+
+    PlatformServiceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        namespace:
+          type: string
+        status:
+          type: string
+          enum: [Running, Stopped, Unknown]
+        url:
+          type: string
+        category:
+          type: string
+        isJdbc:
+          type: boolean
 
     AuditLog:
       type: object

@@ -69,6 +69,7 @@ Expected database tables:
 - `spark_cluster_operations`
 - `spark_cluster_settings`
 - `users`
+- `platform_services`
 
 Default login:
 
@@ -135,6 +136,9 @@ kubectl -n portal exec -i deployment/portal-postgres -- \
 
 kubectl -n portal exec -i deployment/portal-postgres -- \
   psql -U data_platform -d data_platform < lib/db/migrations/0003_users.sql
+
+kubectl -n portal exec -i deployment/portal-postgres -- \
+  psql -U data_platform -d data_platform < lib/db/migrations/0004_platform_services.sql
 ```
 
 ### JWT Secret
@@ -164,7 +168,7 @@ kubectl apply -f k8s/deploy.yaml
 Observed:
 
 - PostgreSQL rolled out successfully.
-- Tables `spark_cluster_operations` and `spark_cluster_settings` were created. Existing PVCs need `0003_users.sql` applied manually for the `users` table and default admin account.
+- Tables `spark_cluster_operations` and `spark_cluster_settings` were created. Existing PVCs need `0003_users.sql` and `0004_platform_services.sql` applied manually for the users and service catalog tables.
 - The app deployment reached `ImagePullBackOff` because `data-portal-app:latest` was not available in a registry or on the node runtime.
 
 The user `hduser` can use `kubectl` but does not have Docker/containerd socket access and sudo requires a password, so the image could not be built or loaded into the cluster during this test session.

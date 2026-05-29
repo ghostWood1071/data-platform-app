@@ -19,6 +19,7 @@ export {
   updateSparkClusterSettings,
 } from "./spark-cluster";
 export { deleteUser } from "./users";
+export { createService, updateService, deleteService } from "./services";
 export type {
   SparkClusterDto,
   SparkClusterOperationDto,

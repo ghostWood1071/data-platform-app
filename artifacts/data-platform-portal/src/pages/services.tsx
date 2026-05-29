@@ -1,5 +1,15 @@
-import { useState } from "react";
-import { useGetServices } from "@workspace/api-client-react";
+import { useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  createService,
+  deleteService,
+  getGetServicesQueryKey,
+  updateService,
+  useGetServices,
+  type PlatformService,
+  type PlatformServiceInput,
+  type PlatformServiceUpdate,
+} from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/contexts/auth";
@@ -7,26 +17,56 @@ import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Database, Search, Copy, Check } from "lucide-react";
+import { ExternalLink, Database, Search, Copy, Check, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { MOCK_SERVICES } from "@/data/mock";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const emptyServiceForm: PlatformServiceInput = {
+  id: "",
+  name: "",
+  description: "",
+  namespace: "",
+  status: "Running",
+  url: "",
+  category: "",
+  isJdbc: false,
+};
 
 export default function Services() {
   const { hasPermission } = useAuth();
   const { data, isLoading } = useGetServices();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [jdbcModalOpen, setJdbcModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedJdbcUrl, setSelectedJdbcUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<PlatformServiceInput>(emptyServiceForm);
+  const canCreateService = hasPermission("service.create");
+  const canUpdateService = hasPermission("service.update");
+  const canDeleteService = hasPermission("service.delete");
 
-  const services = data || MOCK_SERVICES;
+  const services = data || [];
 
   const filteredServices = services.filter(s => 
     s.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -53,6 +93,80 @@ export default function Services() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const openCreateModal = () => {
+    setEditingServiceId(null);
+    setFormData(emptyServiceForm);
+    setCreateModalOpen(true);
+  };
+
+  const openEditModal = (service: PlatformService) => {
+    setEditingServiceId(service.id);
+    setFormData({
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      namespace: service.namespace,
+      status: service.status,
+      url: service.url,
+      category: service.category,
+      isJdbc: service.isJdbc ?? false,
+    });
+    setCreateModalOpen(true);
+  };
+
+  const handleSaveService = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsSaving(true);
+
+    const payload: PlatformServiceInput = {
+      ...formData,
+      id: formData.id.trim(),
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+      namespace: formData.namespace.trim(),
+      url: formData.url.trim(),
+      category: formData.category.trim(),
+      isJdbc: formData.isJdbc ?? false,
+    };
+
+    try {
+      if (editingServiceId) {
+        const updatePayload: PlatformServiceUpdate = {
+          name: payload.name,
+          description: payload.description,
+          namespace: payload.namespace,
+          status: payload.status,
+          url: payload.url,
+          category: payload.category,
+          isJdbc: payload.isJdbc,
+        };
+        await updateService(editingServiceId, updatePayload);
+      } else {
+        await createService(payload);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: getGetServicesQueryKey() });
+      setCreateModalOpen(false);
+      toast({ title: `Service ${editingServiceId ? "updated" : "created"} successfully` });
+    } catch {
+      toast({ title: `Failed to ${editingServiceId ? "update" : "create"} service`, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteService = async (service: PlatformService) => {
+    if (!window.confirm(`Delete service "${service.name}" permanently?`)) return;
+
+    try {
+      await deleteService(service.id);
+      await queryClient.invalidateQueries({ queryKey: getGetServicesQueryKey() });
+      toast({ title: "Service deleted successfully" });
+    } catch {
+      toast({ title: "Failed to delete service", variant: "destructive" });
+    }
+  };
+
   return (
     <ProtectedRoute>
       <Layout>
@@ -61,14 +175,22 @@ export default function Services() {
             <h1 className="text-2xl font-bold tracking-tight">Service Catalog</h1>
             <p className="text-muted-foreground">Access platform tools and endpoints</p>
           </div>
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search services..." 
-              className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search services..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            {canCreateService && (
+              <Button className="gap-2" onClick={openCreateModal}>
+                <Plus size={16} />
+                Add Service
+              </Button>
+            )}
           </div>
         </div>
 
@@ -100,9 +222,38 @@ export default function Services() {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start mb-1">
                     <CardTitle className="text-lg">{service.name}</CardTitle>
-                    <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">
-                      {service.category}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">
+                        {service.category}
+                      </span>
+                      {(canUpdateService || canDeleteService) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal size={16} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="gap-2"
+                              disabled={!canUpdateService}
+                              onClick={() => openEditModal(service)}
+                            >
+                              <Edit size={14} />
+                              Edit service
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="gap-2 text-destructive focus:bg-destructive/10"
+                              disabled={!canDeleteService}
+                              onClick={() => handleDeleteService(service)}
+                            >
+                              <Trash2 size={14} />
+                              Delete service
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
                   <CardDescription className="line-clamp-2 min-h-[40px]">{service.description}</CardDescription>
                 </CardHeader>
@@ -151,6 +302,129 @@ export default function Services() {
                 <strong>Note:</strong> You will need to use your platform credentials (username/password) when connecting.
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+          <DialogContent className="sm:max-w-[560px]">
+            <form onSubmit={handleSaveService}>
+              <DialogHeader>
+                <DialogTitle>{editingServiceId ? "Edit Service" : "Add Service"}</DialogTitle>
+                <DialogDescription>
+                  {editingServiceId
+                    ? "Update the catalog entry for this platform endpoint."
+                    : "Create a catalog entry for a platform endpoint."}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="service-id">Service ID</Label>
+                  <Input
+                    id="service-id"
+                    value={formData.id}
+                    onChange={(event) => setFormData({ ...formData, id: event.target.value })}
+                    placeholder="superset"
+                    disabled={Boolean(editingServiceId)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="service-name">Name</Label>
+                  <Input
+                    id="service-name"
+                    value={formData.name}
+                    onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                    placeholder="Apache Superset"
+                    required
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="service-description">Description</Label>
+                  <Input
+                    id="service-description"
+                    value={formData.description}
+                    onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+                    placeholder="BI dashboard and exploration"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="service-namespace">Namespace</Label>
+                  <Input
+                    id="service-namespace"
+                    value={formData.namespace}
+                    onChange={(event) => setFormData({ ...formData, namespace: event.target.value })}
+                    placeholder="analytics"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="service-category">Category</Label>
+                  <Input
+                    id="service-category"
+                    value={formData.category}
+                    onChange={(event) => setFormData({ ...formData, category: event.target.value })}
+                    placeholder="analytics"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="service-status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        status: value as PlatformServiceInput["status"],
+                      })
+                    }
+                  >
+                    <SelectTrigger id="service-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Running">Running</SelectItem>
+                      <SelectItem value="Stopped">Stopped</SelectItem>
+                      <SelectItem value="Unknown">Unknown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end pb-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="service-is-jdbc"
+                      checked={formData.isJdbc}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, isJdbc: checked === true })
+                      }
+                    />
+                    <Label htmlFor="service-is-jdbc">JDBC endpoint</Label>
+                  </div>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="service-url">URL</Label>
+                  <Input
+                    id="service-url"
+                    value={formData.url}
+                    onChange={(event) => setFormData({ ...formData, url: event.target.value })}
+                    placeholder="https://superset.k8s.tailnet"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setCreateModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving
+                    ? "Saving..."
+                    : editingServiceId
+                      ? "Save Changes"
+                      : "Create Service"}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </Layout>
