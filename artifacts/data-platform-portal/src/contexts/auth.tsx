@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import type { User } from "@workspace/api-client-react";
-import { MOCK_USERS, MOCK_ROLES } from "../data/mock";
+import {
+  getCurrentUser,
+  login as loginRequest,
+  logout as logoutRequest,
+  setAuthTokenGetter,
+  type User,
+} from "@workspace/api-client-react";
+import { MOCK_ROLES } from "../data/mock";
 
 interface AuthUser extends User {
   permissions: string[];
@@ -8,49 +14,73 @@ interface AuthUser extends User {
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (username: string, password?: string) => Promise<AuthUser>;
+  login: (username: string, password?: string, rememberMe?: boolean) => Promise<AuthUser>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+const TOKEN_KEY = "platform_auth_token";
+const USER_KEY = "platform_user";
+
+setAuthTokenGetter(() => localStorage.getItem(TOKEN_KEY));
+
+function attachPermissions(user: User): AuthUser {
+  const role = MOCK_ROLES.find((r) => r.name === user.role);
+  return { ...user, permissions: role ? role.permissions : [] };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("platform_user");
+    const savedUser = localStorage.getItem(USER_KEY);
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
       } catch (e) {
-        localStorage.removeItem("platform_user");
+        localStorage.removeItem(USER_KEY);
       }
+    }
+
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      getCurrentUser()
+        .then((currentUser) => {
+          const authUser = attachPermissions(currentUser);
+          setUser(authUser);
+          localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+        })
+        .catch(() => {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          setUser(null);
+        });
     }
   }, []);
 
-  const login = async (username: string, password?: string): Promise<AuthUser> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const found = MOCK_USERS.find(u => u.username === username);
-        // Using mock passwords: username == password
-        if (found && (!password || password === username)) {
-          const role = MOCK_ROLES.find(r => r.name === found.role);
-          const permissions = role ? role.permissions : [];
-          const authUser: AuthUser = { ...found, permissions };
-          setUser(authUser);
-          localStorage.setItem("platform_user", JSON.stringify(authUser));
-          resolve(authUser);
-        } else {
-          reject(new Error("Invalid credentials"));
-        }
-      }, 500);
+  const login = async (
+    username: string,
+    password?: string,
+    rememberMe?: boolean,
+  ): Promise<AuthUser> => {
+    const response = await loginRequest({
+      username,
+      password: password || "",
+      rememberMe,
     });
+    localStorage.setItem(TOKEN_KEY, response.token);
+    const authUser = attachPermissions(response.user);
+    setUser(authUser);
+    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+    return authUser;
   };
 
   const logout = () => {
+    void logoutRequest().catch(() => undefined);
     setUser(null);
-    localStorage.removeItem("platform_user");
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   };
 
   const hasPermission = (permission: string) => {

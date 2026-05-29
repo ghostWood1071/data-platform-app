@@ -391,6 +391,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: User deleted
 
   /users/{id}/toggle:
     post:
@@ -519,6 +532,8 @@ components:
         email:
           type: string
         role:
+          type: string
+        password:
           type: string
 
     ToggleUserInput:

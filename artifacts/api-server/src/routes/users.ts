@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { desc, eq } from "drizzle-orm";
 import {
   GetUsersResponse,
   GetUserParams,
@@ -11,88 +12,69 @@ import {
   ToggleUserStatusResponse,
   CreateUserBody,
 } from "@workspace/api-zod";
+import { db, users } from "@workspace/db";
+import { hashPassword } from "../services/password.service";
+import { requirePermission } from "../middleware/auth";
 
 const router: IRouter = Router();
 
-type UserStatus = "active" | "disabled";
+type DbUser = typeof users.$inferSelect;
 
-interface MockUser {
-  id: string;
-  username: string;
-  fullName: string;
-  email: string;
-  role: string;
-  status: UserStatus;
-  createdAt: string;
+function mapUser(user: DbUser) {
+  return {
+    id: user.id,
+    username: user.username,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    status: user.status as "active" | "disabled",
+    createdAt: user.createdAt.toISOString(),
+  };
 }
 
-const mockUsers: MockUser[] = [
-  {
-    id: "1",
-    username: "admin",
-    fullName: "Administrator",
-    email: "admin@platform.local",
-    role: "platform_admin",
-    status: "active",
-    createdAt: "2025-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    username: "thinh",
-    fullName: "Thinh Nguyen",
-    email: "thinh@platform.local",
-    role: "data_engineer",
-    status: "active",
-    createdAt: "2025-02-01T00:00:00Z",
-  },
-  {
-    id: "3",
-    username: "analyst1",
-    fullName: "Data Analyst",
-    email: "analyst1@platform.local",
-    role: "analyst",
-    status: "active",
-    createdAt: "2025-03-01T00:00:00Z",
-  },
-  {
-    id: "4",
-    username: "viewer1",
-    fullName: "Viewer User",
-    email: "viewer1@platform.local",
-    role: "viewer",
-    status: "active",
-    createdAt: "2025-04-01T00:00:00Z",
-  },
-];
+function isUniqueViolation(error: unknown) {
+  return (error as { code?: string }).code === "23505";
+}
 
-let nextId = 5;
-
-router.get("/users", async (_req, res): Promise<void> => {
-  res.json(GetUsersResponse.parse(mockUsers));
+router.get("/users", requirePermission("user.view"), async (_req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(users)
+    .orderBy(desc(users.createdAt));
+  res.json(GetUsersResponse.parse(rows.map(mapUser)));
 });
 
-router.post("/users", async (req, res): Promise<void> => {
+router.post("/users", requirePermission("user.create"), async (req, res): Promise<void> => {
   const parsed = CreateUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const newUser: MockUser = {
-    id: String(nextId++),
-    username: parsed.data.username,
-    fullName: parsed.data.fullName,
-    email: parsed.data.email,
-    role: parsed.data.role,
-    status: "active",
-    createdAt: new Date().toISOString(),
-  };
+  try {
+    const [created] = await db
+      .insert(users)
+      .values({
+        username: parsed.data.username,
+        passwordHash: await hashPassword(parsed.data.password || parsed.data.username),
+        fullName: parsed.data.fullName,
+        email: parsed.data.email,
+        role: parsed.data.role,
+        status: "active",
+      })
+      .returning();
 
-  mockUsers.push(newUser);
-  res.status(201).json(GetUserResponse.parse(newUser));
+    res.status(201).json(GetUserResponse.parse(mapUser(created)));
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      res.status(409).json({ error: "Username or email already exists" });
+      return;
+    }
+    throw error;
+  }
 });
 
-router.get("/users/:id", async (req, res): Promise<void> => {
+router.get("/users/:id", requirePermission("user.view"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = GetUserParams.safeParse({ id: raw });
   if (!params.success) {
@@ -100,16 +82,16 @@ router.get("/users/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const user = mockUsers.find((u) => u.id === params.data.id);
+  const [user] = await db.select().from(users).where(eq(users.id, params.data.id));
   if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
   }
 
-  res.json(GetUserResponse.parse(user));
+  res.json(GetUserResponse.parse(mapUser(user)));
 });
 
-router.patch("/users/:id", async (req, res): Promise<void> => {
+router.patch("/users/:id", requirePermission("user.update"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdateUserParams.safeParse({ id: raw });
   if (!params.success) {
@@ -123,20 +105,35 @@ router.patch("/users/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const idx = mockUsers.findIndex((u) => u.id === params.data.id);
-  if (idx === -1) {
-    res.status(404).json({ error: "User not found" });
-    return;
+  try {
+    const [updated] = await db
+      .update(users)
+      .set({
+        ...(parsed.data.fullName != null ? { fullName: parsed.data.fullName } : {}),
+        ...(parsed.data.email != null ? { email: parsed.data.email } : {}),
+        ...(parsed.data.role != null ? { role: parsed.data.role } : {}),
+        ...(parsed.data.password ? { passwordHash: await hashPassword(parsed.data.password) } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, params.data.id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    res.json(UpdateUserResponse.parse(mapUser(updated)));
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      res.status(409).json({ error: "Username or email already exists" });
+      return;
+    }
+    throw error;
   }
-
-  if (parsed.data.fullName != null) mockUsers[idx].fullName = parsed.data.fullName;
-  if (parsed.data.email != null) mockUsers[idx].email = parsed.data.email;
-  if (parsed.data.role != null) mockUsers[idx].role = parsed.data.role;
-
-  res.json(UpdateUserResponse.parse(mockUsers[idx]));
 });
 
-router.post("/users/:id/toggle", async (req, res): Promise<void> => {
+router.post("/users/:id/toggle", requirePermission("user.disable"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = ToggleUserStatusParams.safeParse({ id: raw });
   if (!params.success) {
@@ -150,14 +147,42 @@ router.post("/users/:id/toggle", async (req, res): Promise<void> => {
     return;
   }
 
-  const idx = mockUsers.findIndex((u) => u.id === params.data.id);
-  if (idx === -1) {
+  const [updated] = await db
+    .update(users)
+    .set({
+      status: parsed.data.enabled ? "active" : "disabled",
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, params.data.id))
+    .returning();
+
+  if (!updated) {
     res.status(404).json({ error: "User not found" });
     return;
   }
 
-  mockUsers[idx].status = parsed.data.enabled ? "active" : "disabled";
-  res.json(ToggleUserStatusResponse.parse(mockUsers[idx]));
+  res.json(ToggleUserStatusResponse.parse(mapUser(updated)));
+});
+
+router.delete("/users/:id", requirePermission("user.delete"), async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = GetUserParams.safeParse({ id: raw });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [deleted] = await db
+    .delete(users)
+    .where(eq(users.id, params.data.id))
+    .returning();
+
+  if (!deleted) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.status(204).send();
 });
 
 export default router;

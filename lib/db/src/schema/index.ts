@@ -5,7 +5,27 @@ import {
   timestamp,
   uuid,
   jsonb,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    username: text("username").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    fullName: text("full_name").notNull(),
+    email: text("email").notNull(),
+    role: text("role").notNull(),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    usernameIdx: uniqueIndex("users_username_unique").on(table.username),
+    emailIdx: uniqueIndex("users_email_unique").on(table.email),
+  }),
+);
 
 export const sparkClusterOperations = pgTable("spark_cluster_operations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -43,3 +63,5 @@ export type SparkClusterOperation = typeof sparkClusterOperations.$inferSelect;
 export type NewSparkClusterOperation = typeof sparkClusterOperations.$inferInsert;
 export type SparkClusterSettings = typeof sparkClusterSettings.$inferSelect;
 export type NewSparkClusterSettings = typeof sparkClusterSettings.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;

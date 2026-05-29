@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { useGetUsers, useCreateUser, useUpdateUser, useToggleUserStatus } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  deleteUser,
+  getGetUsersQueryKey,
+  useGetUsers,
+  useCreateUser,
+  useUpdateUser,
+  useToggleUserStatus,
+} from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { ProtectedRoute } from "@/components/protected-route";
 import { StatusBadge } from "@/components/status-badge";
@@ -11,8 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MOCK_USERS } from "@/data/mock";
-import { UserPlus, MoreHorizontal, Edit, Shield, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus, MoreHorizontal, Edit, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +39,7 @@ import {
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/auth";
 
 export default function Users() {
   const { data, isLoading } = useGetUsers();
@@ -39,8 +47,14 @@ export default function Users() {
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("user.create");
+  const canUpdate = hasPermission("user.update");
+  const canDisable = hasPermission("user.disable");
+  const canDelete = hasPermission("user.delete");
   
-  const users = data || MOCK_USERS;
+  const users = data || [];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -82,9 +96,21 @@ export default function Users() {
     const isEnabling = currentStatus !== "active";
     try {
       await toggleMutation.mutateAsync({ id, data: { enabled: isEnabling } });
+      queryClient.invalidateQueries({ queryKey: getGetUsersQueryKey() });
       toast({ title: `User ${isEnabling ? 'enabled' : 'disabled'} successfully` });
     } catch (e) {
-      toast({ title: "Updated user status (Mock)", description: "Backend not connected." });
+      toast({ title: "Failed to update user status", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!window.confirm("Delete this user permanently?")) return;
+    try {
+      await deleteUser(id);
+      queryClient.invalidateQueries({ queryKey: getGetUsersQueryKey() });
+      toast({ title: "User deleted successfully" });
+    } catch {
+      toast({ title: "Failed to delete user", variant: "destructive" });
     }
   };
 
@@ -97,9 +123,11 @@ export default function Users() {
           data: {
             fullName: formData.fullName,
             email: formData.email,
-            role: formData.role
+            role: formData.role,
+            ...(formData.password ? { password: formData.password } : {}),
           }
         });
+        queryClient.invalidateQueries({ queryKey: getGetUsersQueryKey() });
         toast({ title: "User updated successfully" });
       } else {
         await createMutation.mutateAsync({
@@ -111,15 +139,15 @@ export default function Users() {
             password: formData.password
           }
         });
+        queryClient.invalidateQueries({ queryKey: getGetUsersQueryKey() });
         toast({ title: "User created successfully" });
       }
       setIsModalOpen(false);
     } catch (error) {
       toast({ 
-        title: `${editingUser ? 'Updated' : 'Created'} user (Mock)`, 
-        description: "Backend not connected." 
+        title: `Failed to ${editingUser ? 'update' : 'create'} user`,
+        variant: "destructive",
       });
-      setIsModalOpen(false);
     }
   };
 
@@ -146,7 +174,7 @@ export default function Users() {
             <h1 className="text-2xl font-bold tracking-tight">Users & Roles</h1>
             <p className="text-muted-foreground">Manage platform access and permissions</p>
           </div>
-          <Button className="gap-2" onClick={openCreateModal}>
+          <Button className="gap-2" onClick={openCreateModal} disabled={!canCreate}>
             <UserPlus size={16} />
             Add User
           </Button>
@@ -207,13 +235,26 @@ export default function Users() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => openEditModal(user)}>
+                              <DropdownMenuItem
+                                className="cursor-pointer gap-2"
+                                disabled={!canUpdate}
+                                onClick={() => openEditModal(user)}
+                              >
                                 <Edit size={14} /> Edit details
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="cursor-pointer gap-2 text-destructive focus:bg-destructive/10"
+                                disabled={!canDelete}
+                                onClick={() => handleDeleteUser(user.id)}
+                              >
+                                <Trash2 size={14} /> Delete user
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               {user.status === "active" ? (
                                 <DropdownMenuItem 
                                   className="cursor-pointer gap-2 text-destructive focus:bg-destructive/10"
+                                  disabled={!canDisable}
                                   onClick={() => handleToggleStatus(user.id, user.status)}
                                 >
                                   <XCircle size={14} /> Disable user
@@ -221,6 +262,7 @@ export default function Users() {
                               ) : (
                                 <DropdownMenuItem 
                                   className="cursor-pointer gap-2 text-emerald-600 focus:bg-emerald-500/10"
+                                  disabled={!canDisable}
                                   onClick={() => handleToggleStatus(user.id, user.status)}
                                 >
                                   <CheckCircle size={14} /> Enable user
@@ -295,18 +337,18 @@ export default function Users() {
                     </SelectContent>
                   </Select>
                 </div>
-                {!editingUser && (
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Temporary Password</Label>
-                    <Input 
-                      id="password" 
-                      type="password"
-                      value={formData.password}
-                      onChange={e => setFormData({...formData, password: e.target.value})}
-                      required
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="password">
+                    {editingUser ? "New Password" : "Temporary Password"}
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={e => setFormData({...formData, password: e.target.value})}
+                    required={!editingUser}
+                  />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>

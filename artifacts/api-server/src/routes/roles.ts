@@ -28,6 +28,7 @@ const mockRoles = [
       "user.create",
       "user.update",
       "user.disable",
+      "user.delete",
       "role.view",
       "role.update",
       "dashboard.view",

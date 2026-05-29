@@ -18,6 +18,7 @@ export {
   getSparkClusterSettings,
   updateSparkClusterSettings,
 } from "./spark-cluster";
+export { deleteUser } from "./users";
 export type {
   SparkClusterDto,
   SparkClusterOperationDto,

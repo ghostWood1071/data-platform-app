@@ -13,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -22,13 +23,13 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      await login(username, password);
+      await login(username, password, rememberMe);
       // get redirect param if exists, else dashboard
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect");
       setLocation(redirect || "/dashboard");
     } catch (err) {
-      setError("Invalid credentials. Try: admin/admin, thinh/thinh");
+      setError("Invalid credentials. Try: admin/admin");
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +81,11 @@ export default function Login() {
               />
             </div>
             <div className="flex items-center space-x-2 pt-2">
-              <Checkbox id="remember" />
+              <Checkbox
+                id="remember"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+              />
               <label
                 htmlFor="remember"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -98,8 +103,8 @@ export default function Login() {
       </Card>
       
       <div className="mt-8 text-xs text-sidebar-foreground/40 space-y-1 text-center">
-        <p>Mock accounts: admin, thinh, analyst1, viewer1</p>
-        <p>Password is same as username</p>
+        <p>Default account: admin</p>
+        <p>Default password: admin</p>
       </div>
     </div>
   );

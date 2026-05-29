@@ -18,12 +18,13 @@ From a machine with Docker access:
 ```bash
 docker build -t ghostwood/data-platform-portal:1.0.0 .
 docker push ghostwood/data-platform-portal:1.0.0
+docker tag ghostwood/data-platform-portal:1.0.0 ghostwood/data-platform-portal:latest
+docker push ghostwood/data-platform-portal:latest
 ```
 
-Then update the image used by Kustomize:
+Then apply the manifests from the repository root:
 
 ```bash
-cd k8s
 kubectl apply -k k8s
 ```
 
@@ -67,6 +68,14 @@ Expected database tables:
 
 - `spark_cluster_operations`
 - `spark_cluster_settings`
+- `users`
+
+Default login:
+
+- username: `admin`
+- password: `admin`
+
+Change the password after first login from the Users page by editing the admin user, or create a new admin user and disable/delete the seeded account.
 
 ## Ingress
 
@@ -123,6 +132,21 @@ kubectl -n portal exec -i deployment/portal-postgres -- \
 
 kubectl -n portal exec -i deployment/portal-postgres -- \
   psql -U data_platform -d data_platform < lib/db/migrations/0002_spark_cluster_settings.sql
+
+kubectl -n portal exec -i deployment/portal-postgres -- \
+  psql -U data_platform -d data_platform < lib/db/migrations/0003_users.sql
+```
+
+### JWT Secret
+
+The API signs JWTs with `JWT_SECRET` from `portal-auth-secret`.
+
+Before production deploy, replace the default value:
+
+```bash
+kubectl -n portal create secret generic portal-auth-secret \
+  --from-literal=JWT_SECRET='<strong-random-secret>' \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ### Deployment Test Result On Master
@@ -140,7 +164,7 @@ kubectl apply -f k8s/deploy.yaml
 Observed:
 
 - PostgreSQL rolled out successfully.
-- Tables `spark_cluster_operations` and `spark_cluster_settings` were created.
+- Tables `spark_cluster_operations` and `spark_cluster_settings` were created. Existing PVCs need `0003_users.sql` applied manually for the `users` table and default admin account.
 - The app deployment reached `ImagePullBackOff` because `data-portal-app:latest` was not available in a registry or on the node runtime.
 
 The user `hduser` can use `kubectl` but does not have Docker/containerd socket access and sudo requires a password, so the image could not be built or loaded into the cluster during this test session.
