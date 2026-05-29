@@ -33,7 +33,7 @@ Or edit `k8s/kustomization.yaml`:
 images:
   - name: data-portal-app
     newName: ghostwood/data-platform-portal
-    newTag: 1.0.0
+    newTag: latest
 ```
 
 ## Deploy
