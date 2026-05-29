@@ -9,7 +9,7 @@ This deploys the data platform portal, PostgreSQL, Spark management RBAC, and Ng
 - Default StorageClass exists for the PostgreSQL PVC.
 - The app image is built and pushed to a registry reachable by all Kubernetes nodes.
 
-The app manifest must not use a local-only image such as `data-portal-app:latest` unless that image is loaded into every node runtime.
+The app manifest uses `ghostwood/data-platform-portal:latest` and `imagePullPolicy: Always` so Kubernetes pulls the registry image instead of looking for a local-only image.
 
 ## Build And Push Image
 
@@ -32,7 +32,7 @@ Or edit `k8s/kustomization.yaml`:
 
 ```yaml
 images:
-  - name: data-portal-app
+  - name: ghostwood/data-platform-portal
     newName: ghostwood/data-platform-portal
     newTag: latest
 ```
@@ -116,11 +116,13 @@ Check the pod events:
 kubectl -n portal describe pod -l app=data-portal-app
 ```
 
-If you see Kubernetes pulling `docker.io/library/data-portal-app:latest`, the image was not pushed to a registry. Build and push the image, then update `k8s/kustomization.yaml` or run:
+If you see Kubernetes pulling `docker.io/library/data-portal-app:latest` or another unintended image, the deployment was applied from an old manifest. Build and push the image, then apply Kustomize and force a rollout:
 
 ```bash
+kubectl apply -k k8s
 kubectl -n portal set image deployment/data-portal-app \
-  data-portal-app=ghostwood/data-platform-portal:1.0.0
+  data-portal-app=ghostwood/data-platform-portal:latest
+kubectl -n portal rollout restart deployment/data-portal-app
 ```
 
 ### Database Init Did Not Run
@@ -169,6 +171,6 @@ Observed:
 
 - PostgreSQL rolled out successfully.
 - Tables `spark_cluster_operations` and `spark_cluster_settings` were created. Existing PVCs need `0003_users.sql` and `0004_platform_services.sql` applied manually for the users and service catalog tables.
-- The app deployment reached `ImagePullBackOff` because `data-portal-app:latest` was not available in a registry or on the node runtime.
+- The app deployment previously reached `ImagePullBackOff` when an old manifest pointed at local-only `data-portal-app:latest`. Current manifests point at `ghostwood/data-platform-portal:latest`.
 
 The user `hduser` can use `kubectl` but does not have Docker/containerd socket access and sudo requires a password, so the image could not be built or loaded into the cluster during this test session.

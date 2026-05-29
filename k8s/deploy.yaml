@@ -27,8 +27,8 @@ spec:
       serviceAccountName: portal-api-server
       containers:
       - name: data-portal-app
-        image: data-portal-app:latest
-        imagePullPolicy: IfNotPresent
+        image: ghostwood/data-platform-portal:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
         env:

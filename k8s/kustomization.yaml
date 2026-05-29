@@ -7,6 +7,6 @@ resources:
   - deploy.yaml
 
 images:
-  - name: data-portal-app
+  - name: ghostwood/data-platform-portal
     newName: ghostwood/data-platform-portal
     newTag: latest

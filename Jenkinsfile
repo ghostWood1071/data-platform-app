@@ -95,6 +95,9 @@ pipeline {
           fi
 
           kubectl apply -k k8s
+          kubectl -n portal set image deployment/data-portal-app \
+            data-portal-app="${DOCKER_IMAGE}:latest"
+          kubectl -n portal rollout restart deployment/data-portal-app
           kubectl -n portal rollout status deployment/portal-postgres --timeout=180s
           kubectl -n portal rollout status deployment/data-portal-app --timeout=300s
         '''
