@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { GetDashboardSummaryResponse } from "@workspace/api-zod";
+import { requirePermission } from "../middleware/auth";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", requirePermission("dashboard.view"), async (_req, res): Promise<void> => {
   const summary = {
     services: [
       { name: "Spark Cluster", status: "Running", description: "Apache Spark compute cluster" },

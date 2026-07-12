@@ -10,7 +10,7 @@ import {
   UpdateServiceResponse,
 } from "@workspace/api-zod";
 import { db, platformServices } from "@workspace/db";
-import { requirePermission } from "../middleware/auth";
+import { requireAuth, requirePermission } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -33,7 +33,7 @@ function isUniqueViolation(error: unknown) {
   return (error as { code?: string }).code === "23505";
 }
 
-router.get("/services", async (_req, res): Promise<void> => {
+router.get("/services", requireAuth(), async (_req, res): Promise<void> => {
   const rows = await db
     .select()
     .from(platformServices)

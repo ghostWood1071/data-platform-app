@@ -46,7 +46,7 @@ export const MOCK_AUDIT_LOGS: AuditLog[] = [
 export const MOCK_ROLES: Role[] = [
   { name: "platform_admin", description: "Full access to all platform resources", permissions: ["*"] },
   { name: "cluster_admin", description: "Manage compute clusters", permissions: ["dashboard.view", "about.view", "cluster.spark.view", "cluster.spark.start", "cluster.spark.stop", "cluster.spark.scale", "spark_cluster:view", "spark_cluster:start", "spark_cluster:stop", "spark_cluster:resize", "spark_cluster:settings"] },
-  { name: "data_engineer", description: "Access data engineering tools", permissions: ["dashboard.view", "about.view", "cluster.spark.view", "spark_cluster:view", "service.minio.open", "service.notebook.open", "service.airflow.open", "service.kafka.open", "service.openmetadata.open"] },
+  { name: "data_engineer", description: "Access data engineering tools", permissions: ["dashboard.view", "about.view", "cluster.spark.view", "spark_cluster:view", "service.minio.open", "service.notebook.open", "service.airflow.open", "service.kafka.open", "service.openmetadata.open", "service.spark-thrift.open", "service.spark-ui.open"] },
   { name: "analyst", description: "Access query and notebook tools", permissions: ["dashboard.view", "about.view", "cluster.spark.view", "spark_cluster:view", "service.notebook.open", "service.spark-thrift.open"] },
   { name: "viewer", description: "View-only access to dashboard", permissions: ["dashboard.view", "about.view"] }
 ];

@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type Response } from "express";
+import { Router } from "express";
 import {
   SparkReleaseNameSchema,
   StartSparkClusterRequestSchema,
@@ -8,39 +8,16 @@ import {
 import { sparkClusterService } from "../services/spark-cluster.service";
 import { sparkClusterStatusService } from "../services/spark-cluster-status.service";
 import { SPARK_CLUSTER_CONFIG } from "../config/spark-cluster.config";
+import { requirePermission } from "../middleware/auth";
 
 const router = Router();
-
-type SparkClusterPermission =
-  | "spark_cluster:view"
-  | "spark_cluster:start"
-  | "spark_cluster:stop"
-  | "spark_cluster:resize"
-  | "spark_cluster:settings";
-
-function hasSparkClusterPermission(_req: Request, _permission: SparkClusterPermission) {
-  // TODO: connect this to the real auth/session permission source when the
-  // backend auth module is available. Keep route-level checks centralized here
-  // so action endpoints cannot rely on frontend-only button visibility.
-  return true;
-}
-
-function requireSparkClusterPermission(permission: SparkClusterPermission) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!hasSparkClusterPermission(req, permission)) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-    next();
-  };
-}
 
 function getParamValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
 // GET /api/spark-clusters
-router.get("/", requireSparkClusterPermission("spark_cluster:view"), async (req, res): Promise<any> => {
+router.get("/", requirePermission("spark_cluster:view"), async (req, res): Promise<any> => {
   try {
     const clusters = await sparkClusterStatusService.getAllClustersStatus();
     return res.json(clusters);
@@ -50,7 +27,7 @@ router.get("/", requireSparkClusterPermission("spark_cluster:view"), async (req,
 });
 
 // GET /api/spark-clusters/settings
-router.get("/settings", requireSparkClusterPermission("spark_cluster:settings"), async (_req, res): Promise<any> => {
+router.get("/settings", requirePermission("spark_cluster:settings"), async (_req, res): Promise<any> => {
   try {
     const settings = await sparkClusterService.getSettings();
     return res.json(settings);
@@ -60,7 +37,7 @@ router.get("/settings", requireSparkClusterPermission("spark_cluster:settings"),
 });
 
 // PUT /api/spark-clusters/settings
-router.put("/settings", requireSparkClusterPermission("spark_cluster:settings"), async (req, res): Promise<any> => {
+router.put("/settings", requirePermission("spark_cluster:settings"), async (req, res): Promise<any> => {
   try {
     const bodyResult = UpdateSparkClusterSettingsRequestSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -74,7 +51,7 @@ router.put("/settings", requireSparkClusterPermission("spark_cluster:settings"),
 });
 
 // GET /api/spark-clusters/operations/:operationId
-router.get("/operations/:operationId", requireSparkClusterPermission("spark_cluster:view"), async (req, res): Promise<any> => {
+router.get("/operations/:operationId", requirePermission("spark_cluster:view"), async (req, res): Promise<any> => {
   try {
     const operationId = getParamValue(req.params.operationId);
     if (!operationId) {
@@ -91,7 +68,7 @@ router.get("/operations/:operationId", requireSparkClusterPermission("spark_clus
 });
 
 // GET /api/spark-clusters/:releaseName
-router.get("/:releaseName", requireSparkClusterPermission("spark_cluster:view"), async (req, res): Promise<any> => {
+router.get("/:releaseName", requirePermission("spark_cluster:view"), async (req, res): Promise<any> => {
   try {
     const result = SparkReleaseNameSchema.safeParse(req.params.releaseName);
     if (!result.success) {
@@ -107,7 +84,7 @@ router.get("/:releaseName", requireSparkClusterPermission("spark_cluster:view"),
 });
 
 // POST /api/spark-clusters/:releaseName/start
-router.post("/:releaseName/start", requireSparkClusterPermission("spark_cluster:start"), async (req, res): Promise<any> => {
+router.post("/:releaseName/start", requirePermission("spark_cluster:start"), async (req, res): Promise<any> => {
   try {
     const nameResult = SparkReleaseNameSchema.safeParse(req.params.releaseName);
     if (!nameResult.success) {
@@ -147,7 +124,7 @@ router.post("/:releaseName/start", requireSparkClusterPermission("spark_cluster:
 });
 
 // POST /api/spark-clusters/:releaseName/stop
-router.post("/:releaseName/stop", requireSparkClusterPermission("spark_cluster:stop"), async (req, res): Promise<any> => {
+router.post("/:releaseName/stop", requirePermission("spark_cluster:stop"), async (req, res): Promise<any> => {
   try {
     const nameResult = SparkReleaseNameSchema.safeParse(req.params.releaseName);
     if (!nameResult.success) {
@@ -173,7 +150,7 @@ router.post("/:releaseName/stop", requireSparkClusterPermission("spark_cluster:s
 });
 
 // POST /api/spark-clusters/:releaseName/resize
-router.post("/:releaseName/resize", requireSparkClusterPermission("spark_cluster:resize"), async (req, res): Promise<any> => {
+router.post("/:releaseName/resize", requirePermission("spark_cluster:resize"), async (req, res): Promise<any> => {
   try {
     const nameResult = SparkReleaseNameSchema.safeParse(req.params.releaseName);
     if (!nameResult.success) {
@@ -215,7 +192,7 @@ router.post("/:releaseName/resize", requireSparkClusterPermission("spark_cluster
 });
 
 // GET /api/spark-clusters/:releaseName/operations
-router.get("/:releaseName/operations", requireSparkClusterPermission("spark_cluster:view"), async (req, res): Promise<any> => {
+router.get("/:releaseName/operations", requirePermission("spark_cluster:view"), async (req, res): Promise<any> => {
   try {
     const nameResult = SparkReleaseNameSchema.safeParse(req.params.releaseName);
     if (!nameResult.success) {

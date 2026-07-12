@@ -53,9 +53,8 @@ export function Layout({ children }: LayoutProps) {
              hasPermission("service.openmetadata.open") ||
              hasPermission("*");
     }
-    // For users, platform_admin has "*"
     if (item.name === "Users & Roles") {
-      return user?.role === "platform_admin";
+      return hasPermission("user.view");
     }
     return hasPermission(item.permission) || hasPermission("*");
   });

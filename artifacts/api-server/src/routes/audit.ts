@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { GetAuditLogsResponse } from "@workspace/api-zod";
+import { requirePermission } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -55,7 +56,7 @@ const mockAuditLogs = [
   },
 ];
 
-router.get("/audit", async (_req, res): Promise<void> => {
+router.get("/audit", requirePermission("audit.view"), async (_req, res): Promise<void> => {
   res.json(GetAuditLogsResponse.parse(mockAuditLogs));
 });
 

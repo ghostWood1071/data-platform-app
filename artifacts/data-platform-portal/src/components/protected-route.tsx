@@ -28,7 +28,6 @@ export function ProtectedRoute({ children, permission }: ProtectedRouteProps) {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <h2 className="text-2xl font-bold tracking-tight mb-2">Access Denied</h2>
         <p className="text-muted-foreground mb-6">You don't have permission to view this page.</p>
-        <Redirect to="/dashboard" />
       </div>
     );
   }

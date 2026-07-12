@@ -15,6 +15,10 @@ import {
 import { db, users } from "@workspace/db";
 import { hashPassword } from "../services/password.service";
 import { requirePermission } from "../middleware/auth";
+import {
+  isKeycloakAdminConfigured,
+  keycloakAdminService,
+} from "../services/keycloak-admin.service";
 
 const router: IRouter = Router();
 
@@ -37,6 +41,12 @@ function isUniqueViolation(error: unknown) {
 }
 
 router.get("/users", requirePermission("user.view"), async (_req, res): Promise<void> => {
+  if (isKeycloakAdminConfigured()) {
+    const rows = await keycloakAdminService.listUsers();
+    res.json(GetUsersResponse.parse(rows));
+    return;
+  }
+
   const rows = await db
     .select()
     .from(users)
@@ -48,6 +58,12 @@ router.post("/users", requirePermission("user.create"), async (req, res): Promis
   const parsed = CreateUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (isKeycloakAdminConfigured()) {
+    const created = await keycloakAdminService.createUser(parsed.data);
+    res.status(201).json(GetUserResponse.parse(created));
     return;
   }
 
@@ -82,6 +98,12 @@ router.get("/users/:id", requirePermission("user.view"), async (req, res): Promi
     return;
   }
 
+  if (isKeycloakAdminConfigured()) {
+    const user = await keycloakAdminService.getUser(params.data.id);
+    res.json(GetUserResponse.parse(user));
+    return;
+  }
+
   const [user] = await db.select().from(users).where(eq(users.id, params.data.id));
   if (!user) {
     res.status(404).json({ error: "User not found" });
@@ -102,6 +124,12 @@ router.patch("/users/:id", requirePermission("user.update"), async (req, res): P
   const parsed = UpdateUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (isKeycloakAdminConfigured()) {
+    const updated = await keycloakAdminService.updateUser(params.data.id, parsed.data);
+    res.json(UpdateUserResponse.parse(updated));
     return;
   }
 
@@ -147,6 +175,15 @@ router.post("/users/:id/toggle", requirePermission("user.disable"), async (req, 
     return;
   }
 
+  if (isKeycloakAdminConfigured()) {
+    const updated = await keycloakAdminService.setUserEnabled(
+      params.data.id,
+      parsed.data.enabled,
+    );
+    res.json(ToggleUserStatusResponse.parse(updated));
+    return;
+  }
+
   const [updated] = await db
     .update(users)
     .set({
@@ -169,6 +206,12 @@ router.delete("/users/:id", requirePermission("user.delete"), async (req, res): 
   const params = GetUserParams.safeParse({ id: raw });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  if (isKeycloakAdminConfigured()) {
+    await keycloakAdminService.deleteUser(params.data.id);
+    res.status(204).send();
     return;
   }
 

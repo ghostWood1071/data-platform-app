@@ -11,7 +11,34 @@ import { createJwt, getUserFromRequest, mapAuthUser } from "../middleware/auth";
 
 const router: IRouter = Router();
 
+const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ISSUER_URL?.replace(/\/+$/, "");
+const KEYCLOAK_CLIENT_ID =
+  process.env.KEYCLOAK_CLIENT_ID || "data-platform-portal";
+
+router.get("/auth/config", async (_req, res): Promise<void> => {
+  if (!KEYCLOAK_ISSUER) {
+    res.status(503).json({ error: "Keycloak SSO is not configured" });
+    return;
+  }
+
+  res.json({
+    issuer: KEYCLOAK_ISSUER,
+    clientId: KEYCLOAK_CLIENT_ID,
+    authorizationEndpoint: `${KEYCLOAK_ISSUER}/protocol/openid-connect/auth`,
+    tokenEndpoint:
+      process.env.KEYCLOAK_PUBLIC_TOKEN_ENDPOINT ||
+      `${KEYCLOAK_ISSUER}/protocol/openid-connect/token`,
+    endSessionEndpoint: `${KEYCLOAK_ISSUER}/protocol/openid-connect/logout`,
+    scope: process.env.KEYCLOAK_SCOPE || "openid profile email roles",
+  });
+});
+
 router.post("/auth/login", async (req, res): Promise<void> => {
+  if (KEYCLOAK_ISSUER) {
+    res.status(410).json({ error: "Password login is disabled; use Keycloak SSO" });
+    return;
+  }
+
   const parsed = LoginBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

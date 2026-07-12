@@ -7,6 +7,7 @@ import {
   GetSparkPodsResponse,
   GetSparkEventsResponse,
 } from "@workspace/api-zod";
+import { requirePermission } from "../middleware/auth";
 
 const router: IRouter = Router();
 
@@ -227,11 +228,11 @@ function getPodsForCluster(name: string): ClusterPod[] {
 // Legacy endpoints
 // ============================================================
 
-router.get("/clusters/spark", async (_req, res): Promise<void> => {
+router.get("/clusters/spark", requirePermission("cluster.spark.view"), async (_req, res): Promise<void> => {
   res.json(GetSparkClusterResponse.parse(clusterState));
 });
 
-router.post("/clusters/spark/start", async (_req, res): Promise<void> => {
+router.post("/clusters/spark/start", requirePermission("cluster.spark.start"), async (_req, res): Promise<void> => {
   clusterState.masterStatus = "Running";
   clusterState.workerStatus = "Running";
   res.json(
@@ -242,7 +243,7 @@ router.post("/clusters/spark/start", async (_req, res): Promise<void> => {
   );
 });
 
-router.post("/clusters/spark/stop", async (_req, res): Promise<void> => {
+router.post("/clusters/spark/stop", requirePermission("cluster.spark.stop"), async (_req, res): Promise<void> => {
   clusterState.masterStatus = "Stopped";
   clusterState.workerStatus = "Stopped";
   res.json(
@@ -253,7 +254,7 @@ router.post("/clusters/spark/stop", async (_req, res): Promise<void> => {
   );
 });
 
-router.post("/clusters/spark/scale", async (req, res): Promise<void> => {
+router.post("/clusters/spark/scale", requirePermission("cluster.spark.scale"), async (req, res): Promise<void> => {
   const { workerCount } = req.body as { workerCount: number };
   clusterState.desiredWorkerReplicas = workerCount;
   clusterState.currentWorkerReplicas = workerCount;
@@ -265,11 +266,11 @@ router.post("/clusters/spark/scale", async (req, res): Promise<void> => {
   );
 });
 
-router.get("/clusters/spark/pods", async (_req, res): Promise<void> => {
+router.get("/clusters/spark/pods", requirePermission("cluster.spark.view"), async (_req, res): Promise<void> => {
   res.json(GetSparkPodsResponse.parse(mockPods));
 });
 
-router.get("/clusters/spark/events", async (_req, res): Promise<void> => {
+router.get("/clusters/spark/events", requirePermission("cluster.spark.view"), async (_req, res): Promise<void> => {
   res.json(GetSparkEventsResponse.parse(mockEvents));
 });
 
@@ -277,11 +278,11 @@ router.get("/clusters/spark/events", async (_req, res): Promise<void> => {
 // New multi-cluster endpoints
 // ============================================================
 
-router.get("/clusters/spark/list", async (_req, res): Promise<void> => {
+router.get("/clusters/spark/list", requirePermission("cluster.spark.view"), async (_req, res): Promise<void> => {
   res.json({ clusters: Array.from(clusters.values()) });
 });
 
-router.get("/clusters/spark/:clusterName", async (req, res): Promise<void> => {
+router.get("/clusters/spark/:clusterName", requirePermission("cluster.spark.view"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.clusterName) ? req.params.clusterName[0] : req.params.clusterName;
   const cluster = clusters.get(raw);
   if (!cluster) {
@@ -291,7 +292,7 @@ router.get("/clusters/spark/:clusterName", async (req, res): Promise<void> => {
   res.json({ cluster, pods: getPodsForCluster(raw) });
 });
 
-router.post("/clusters/spark/:clusterName/start", async (req, res): Promise<void> => {
+router.post("/clusters/spark/:clusterName/start", requirePermission("cluster.spark.start"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.clusterName) ? req.params.clusterName[0] : req.params.clusterName;
   const cluster = clusters.get(raw);
   if (!cluster) {
@@ -309,7 +310,7 @@ router.post("/clusters/spark/:clusterName/start", async (req, res): Promise<void
   });
 });
 
-router.post("/clusters/spark/:clusterName/stop", async (req, res): Promise<void> => {
+router.post("/clusters/spark/:clusterName/stop", requirePermission("cluster.spark.stop"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.clusterName) ? req.params.clusterName[0] : req.params.clusterName;
   const cluster = clusters.get(raw);
   if (!cluster) {
@@ -326,7 +327,7 @@ router.post("/clusters/spark/:clusterName/stop", async (req, res): Promise<void>
   });
 });
 
-router.post("/clusters/spark/:clusterName/scale", async (req, res): Promise<void> => {
+router.post("/clusters/spark/:clusterName/scale", requirePermission("cluster.spark.scale"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.clusterName) ? req.params.clusterName[0] : req.params.clusterName;
   const cluster = clusters.get(raw);
   if (!cluster) {
@@ -351,7 +352,7 @@ router.post("/clusters/spark/:clusterName/scale", async (req, res): Promise<void
   });
 });
 
-router.put("/clusters/spark/:clusterName/config", async (req, res): Promise<void> => {
+router.put("/clusters/spark/:clusterName/config", requirePermission("spark_cluster:settings"), async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.clusterName) ? req.params.clusterName[0] : req.params.clusterName;
   const cluster = clusters.get(raw);
   if (!cluster) {
